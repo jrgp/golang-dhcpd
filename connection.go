@@ -110,12 +110,14 @@ func (c *ConnectionHandler) HandleRequest() {
 	var lease *Lease
 	var ok bool
 	if lease, ok = c.app.Pool.GetLeaseByMac(mac); !ok {
+		// FIXME: handle this gracefully
 		log.Printf("Unrecognized lease for %v: %v", mac.String())
 		return
 	}
 
 	// Verify IP matches what is in our lease
 	if c.request.ClientAddr != lease.IP {
+		// FIXME: handle this gracefully
 		log.Printf("Client IP does not match! %v != %v (expected)", c.request.ClientAddr, lease.IP)
 		return
 	}
