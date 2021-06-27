@@ -159,12 +159,6 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 		options.Set(3, bytes)
 	}
 
-	// Lease time
-	options.Set(51, long2bytes(c.app.Pool.LeaseTime))
-
-	// DHCP server
-	options.Set(54, long2bytes(c.app.MyIp))
-
 	// DNS servers
 	if len(c.app.Dns) > 0 {
 		bytes := make([]byte, 0, 4*len(c.app.Pool.Dns))
@@ -173,6 +167,12 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 		}
 		options.Set(6, bytes)
 	}
+
+	// Lease time
+	options.Set(51, long2bytes(c.app.Pool.LeaseTime))
+
+	// DHCP server
+	options.Set(54, long2bytes(c.app.MyIp))
 
 	buf := new(bytes.Buffer)
 
