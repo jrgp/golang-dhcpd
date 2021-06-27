@@ -53,13 +53,14 @@ func (c *ConnectionHandler) ParseRequest() error {
 	// Parse arbitrary options
 	c.requestOptions = ParseOptions(c.reader)
 
-	// The Op type can be overridden using an option
+	// Confusingly, the Op type can be overridden using an option
 	if option, ok := c.requestOptions.Get(53); ok {
 		if option.Header.Length == 1 {
 			c.request.Op = option.Data[0]
 		}
 	}
 
+	// Similarly, so can the ClientAddr
 	if option, ok := c.requestOptions.Get(50); ok {
 		if option.Header.Length == 4 {
 			c.request.ClientAddr = bytes2long(option.Data)
@@ -89,7 +90,7 @@ func (c *ConnectionHandler) HandleDiscover() {
 	log.Printf("DHCPDISCOVER from %v", mac.String())
 	if lease, ok := c.app.Pool.GetLeaseByMac(mac); ok {
 		log.Printf("Have old lease for %v: %v", mac.String(), long2ip(lease.IP))
-		c.SendOffer(lease)
+		c.SendLeaseInfo(lease, DHCPOFFER)
 		return
 	}
 
@@ -100,7 +101,7 @@ func (c *ConnectionHandler) HandleDiscover() {
 	}
 
 	log.Printf("Got a new lease for %v: %v", mac.String(), long2ip(lease.IP))
-	c.SendOffer(lease)
+	c.SendLeaseInfo(lease, DHCPOFFER)
 }
 
 func (c *ConnectionHandler) HandleRequest() {
@@ -120,12 +121,13 @@ func (c *ConnectionHandler) HandleRequest() {
 	}
 
 	// Need to send DHCPACK
-
+	c.SendLeaseInfo(lease, DHCPACK)
 }
 
-func (c *ConnectionHandler) SendOffer(lease *Lease) {
+// Share code for DHCPOFFER and DHCPACK
+func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 	header := &MessageHeader{
-		Op:         DHCPOFFER,
+		Op:         op,
 		HType:      1,
 		HLen:       6,
 		Hops:       0,
@@ -136,12 +138,14 @@ func (c *ConnectionHandler) SendOffer(lease *Lease) {
 		Magic:      Magic,
 	}
 
-	log.Printf("Sending DHCPOFFER with %v to %v", long2ip(lease.IP), c.request.Mac.String())
+	log.Printf("Sending %s with %v to %v", opNames[op], long2ip(lease.IP), c.request.Mac.String())
 
 	options := NewOptions()
 
+	// FIXME: replace the following magic numbers with constants!
+
 	// Message type
-	options.Set(53, []byte{DHCPOFFER})
+	options.Set(53, []byte{op})
 
 	// Netmask option
 	options.Set(1, long2bytes(c.app.Pool.Mask))
@@ -186,7 +190,7 @@ func (c *ConnectionHandler) SendOffer(lease *Lease) {
 
 	err = c.sendBroadcast(buf.Bytes())
 	if err != nil {
-		log.Printf("Failed sending DHCPOFFER payload: %v", err)
+		log.Printf("Failed sending %s payload: %v", opNames[op], err)
 	}
 }
 

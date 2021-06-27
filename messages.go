@@ -16,6 +16,11 @@ const (
 	// And others
 )
 
+var opNames = map[byte]string{
+	DHCPOFFER: "DHCPOFFER",
+	DHCPACK:   "DHCPACK",
+}
+
 type MacAddress [6]byte
 
 func (m MacAddress) String() string {
