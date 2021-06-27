@@ -1,0 +1,2 @@
+- Tiny dhcpd ipv4 server in Go with just the standard library
+- Secure, sane, minimal featureset
