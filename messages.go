@@ -42,31 +42,3 @@ type MessageHeader struct {
 	Filename    [128]byte
 	Magic       [4]byte // FIXME: convert these 4 bytes to an int
 }
-
-type MessageOption struct {
-	Header struct {
-		Code   byte
-		Length byte
-	}
-	Data []byte
-}
-
-func (o *MessageOption) CalculateLength() error {
-	length := len(o.Data)
-	if length > 255 {
-		return fmt.Errorf("Length of option %v value '%v' is too long", o.Header.Code, o.Data)
-	}
-	o.Header.Length = byte(length)
-	return nil
-}
-
-func NewMessageOption(code byte, data []byte) (*MessageOption, error) {
-	option := &MessageOption{
-		Data: data,
-	}
-	option.Header.Code = code
-	if err := option.CalculateLength(); err != nil {
-		return nil, err
-	}
-	return option, nil
-}

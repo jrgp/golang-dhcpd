@@ -13,7 +13,7 @@ type ConnectionHandler struct {
 	reader         *bytes.Reader
 	remote         *net.UDPAddr
 	request        *MessageHeader
-	requestOptions []*MessageOption
+	requestOptions *Options
 	optionType     byte
 	app            *App
 }
@@ -31,7 +31,6 @@ func (c *ConnectionHandler) ParseRequest() error {
 		return fmt.Errorf("Source port is %d rather than 68", c.remote.Port)
 	}
 	c.request = &MessageHeader{}
-	c.requestOptions = []*MessageOption{}
 	c.reader = bytes.NewReader(c.buf)
 
 	// Parse DHCP header
@@ -52,41 +51,17 @@ func (c *ConnectionHandler) ParseRequest() error {
 	}
 
 	// Parse arbitrary options
-	for c.reader.Len() > 0 {
-		option := &MessageOption{}
-		err = binary.Read(c.reader, binary.LittleEndian, &option.Header)
-		if err != nil {
-			log.Printf("Failed reading message option?")
-			break
-		}
-		// Used for padding to word boundaries. FIXME: padding won't be followed by length byte
-		if option.Header.Code == 0 {
-			continue
-		} else if option.Header.Code == 255 {
-			// The end
-			break
-		}
-		option.Data = make([]byte, option.Header.Length)
-		count, err := c.reader.Read(option.Data)
-		if err != nil {
-			log.Printf("Failed reading: %v", err)
-			break
-		}
-		if count != int(option.Header.Length) {
-			log.Printf("Did not read as much as expected.%v != %v", count, option.Header.Length)
-			break
-		}
-		c.requestOptions = append(c.requestOptions, option)
-		//log.Printf("Got option '%v': '%v' (%v)", option.Header.Code, option.Data, string(option.Data))
+	c.requestOptions = ParseOptions(c.reader)
 
-		// The op type can be specified as a dhcp option, and this should take
-		// precedence
-		if option.Header.Code == 53 && option.Header.Length == 1 {
+	// The Op type can be overridden using an option
+	if option, ok := c.requestOptions.Get(53); ok {
+		if option.Header.Length == 1 {
 			c.request.Op = option.Data[0]
 		}
+	}
 
-		// Similarly, ClientIP can be present here instead
-		if option.Header.Code == 50 && option.Header.Length == 4 {
+	if option, ok := c.requestOptions.Get(50); ok {
+		if option.Header.Length == 4 {
 			c.request.ClientAddr = bytes2long(option.Data)
 		}
 	}
@@ -144,7 +119,7 @@ func (c *ConnectionHandler) HandleRequest() {
 		return
 	}
 
-	// Need to send
+	// Need to send DHCPACK
 
 }
 
@@ -163,17 +138,13 @@ func (c *ConnectionHandler) SendOffer(lease *Lease) {
 
 	log.Printf("Sending DHCPOFFER with %v to %v", long2ip(lease.IP), c.request.Mac.String())
 
-	options := []*MessageOption{}
+	options := NewOptions()
 
 	// Message type
-	if option, err := NewMessageOption(53, []byte{DHCPOFFER}); err == nil {
-		options = append(options, option)
-	}
+	options.Set(53, []byte{DHCPOFFER})
 
 	// Netmask option
-	if option, err := NewMessageOption(1, long2bytes(c.app.Pool.Mask)); err == nil {
-		options = append(options, option)
-	}
+	options.Set(1, long2bytes(c.app.Pool.Mask))
 
 	// Router (defgw)
 	if len(c.app.Pool.Router) > 0 {
@@ -181,35 +152,22 @@ func (c *ConnectionHandler) SendOffer(lease *Lease) {
 		for _, ip := range c.app.Pool.Router {
 			bytes = append(bytes, long2bytes(ip)...)
 		}
-		if option, err := NewMessageOption(3, bytes); err == nil {
-			options = append(options, option)
-		}
+		options.Set(3, bytes)
 	}
 
 	// Lease time
-	if option, err := NewMessageOption(51, long2bytes(c.app.Pool.LeaseTime)); err == nil {
-		options = append(options, option)
-	}
+	options.Set(51, long2bytes(c.app.Pool.LeaseTime))
 
 	// DHCP server
-	if option, err := NewMessageOption(54, long2bytes(c.app.MyIp)); err == nil {
-		options = append(options, option)
-	}
+	options.Set(54, long2bytes(c.app.MyIp))
 
 	// DNS servers
 	if len(c.app.Dns) > 0 {
-		bytes := make([]byte, 0, 4*len(c.app.Dns))
+		bytes := make([]byte, 0, 4*len(c.app.Pool.Dns))
 		for _, ip := range c.app.Pool.Dns {
 			bytes = append(bytes, long2bytes(ip)...)
 		}
-		if option, err := NewMessageOption(6, bytes); err == nil {
-			options = append(options, option)
-		}
-	}
-
-	// Sentinel
-	if option, err := NewMessageOption(255, []byte{}); err == nil {
-		options = append(options, option)
+		options.Set(6, bytes)
 	}
 
 	buf := new(bytes.Buffer)
@@ -220,29 +178,10 @@ func (c *ConnectionHandler) SendOffer(lease *Lease) {
 		return
 	}
 
-	for _, option := range options {
-		// FIXME: why does the following fail to serialize?
-		/*
-			err = binary.Write(buf, binary.LittleEndian, option)
-			if err != nil {
-				log.Printf("Writing option %+v to our payload: %v", option, err)
-				return
-			}
-		*/
-		if err := buf.WriteByte(option.Header.Code); err != nil {
-			log.Printf("Failed writing option code to buf: %v", err)
-			return
-		}
-		if err := buf.WriteByte(option.Header.Length); err != nil {
-			log.Printf("Failed writing option length to buf: %v", err)
-			return
-		}
-		if len(option.Data) > 0 {
-			if _, err := buf.Write(option.Data); err != nil {
-				log.Printf("Failed writing option data to buf: %v", err)
-				return
-			}
-		}
+	_, err = buf.Write(options.Encode())
+	if err != nil {
+		log.Printf("Writing dhcp options to our payload: %v", err)
+		return
 	}
 
 	err = c.sendBroadcast(buf.Bytes())
