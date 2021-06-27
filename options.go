@@ -136,7 +136,6 @@ func ParseOptions(reader *bytes.Reader) *Options {
 			break
 		}
 		options.Set(option.Header.Code, option.Data)
-		log.Printf("Option '%v' -> '%v' (%s)", option.Header.Code, option.Data, string(option.Data))
 	}
 
 	return options

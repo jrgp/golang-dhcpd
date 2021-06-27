@@ -5,15 +5,15 @@ import (
 )
 
 const (
+	// The order here is crucial
 	DHCPDISCOVER = iota + 1
 	DHCPOFFER
 	DHCPREQUEST
+	DHCPDECLINE
 	DHCPACK
 	DHCPNAK
-	DHCPDECLINE
 	DHCPRELEASE
 	DHCPINFORM
-	// And others
 )
 
 var opNames = map[byte]string{
