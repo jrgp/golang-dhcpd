@@ -14,6 +14,7 @@ type ConnectionHandler struct {
 	remote         *net.UDPAddr
 	request        *MessageHeader
 	requestOptions []*MessageOption
+	optionType     byte
 	app            *App
 }
 
@@ -76,6 +77,18 @@ func (c *ConnectionHandler) ParseRequest() error {
 			break
 		}
 		c.requestOptions = append(c.requestOptions, option)
+		//log.Printf("Got option '%v': '%v' (%v)", option.Header.Code, option.Data, string(option.Data))
+
+		// The op type can be specified as a dhcp option, and this should take
+		// precedence
+		if option.Header.Code == 53 && option.Header.Length == 1 {
+			c.request.Op = option.Data[0]
+		}
+
+		// Similarly, ClientIP can be present here instead
+		if option.Header.Code == 50 && option.Header.Length == 4 {
+			c.request.ClientAddr = bytes2long(option.Data)
+		}
 	}
 
 	return nil
@@ -116,10 +129,26 @@ func (c *ConnectionHandler) HandleDiscover() {
 }
 
 func (c *ConnectionHandler) HandleRequest() {
+	mac := c.request.Mac
+	log.Printf("DHCPREQUEST from %v", mac.String())
+	var lease *Lease
+	var ok bool
+	if lease, ok = c.app.Pool.GetLeaseByMac(mac); !ok {
+		log.Printf("Unrecognized lease for %v: %v", mac.String())
+		return
+	}
+
+	// Verify IP matches what is in our lease
+	if c.request.ClientAddr != lease.IP {
+		log.Printf("Client IP does not match! %v != %v (expected)", c.request.ClientAddr, lease.IP)
+		return
+	}
+
+	// Need to send
+
 }
 
 func (c *ConnectionHandler) SendOffer(lease *Lease) {
-	log.Printf("Sending DHCPOFFER")
 	header := &MessageHeader{
 		Op:         DHCPOFFER,
 		HType:      1,
@@ -131,6 +160,9 @@ func (c *ConnectionHandler) SendOffer(lease *Lease) {
 		Mac:        c.request.Mac,
 		Magic:      Magic,
 	}
+
+	log.Printf("Sending DHCPOFFER with %v to %v", long2ip(lease.IP), c.request.Mac.String())
+
 	options := []*MessageOption{}
 
 	// Message type
