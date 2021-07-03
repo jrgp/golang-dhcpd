@@ -65,9 +65,7 @@ func (o *Options) Set(code byte, data []byte) {
 	o.data[code] = option
 }
 
-func (o *Options) Encode() []byte {
-	buf := new(bytes.Buffer)
-
+func (o *Options) Encode(buf *bytes.Buffer) error {
 	// Need the sentinel value at the end
 	if len(o.order) > 0 && o.order[len(o.order)-1] != OPTION_SENTINEL {
 		o.Set(OPTION_SENTINEL, nil)
@@ -84,23 +82,20 @@ func (o *Options) Encode() []byte {
 		// binary.Write(buf, binary.LittleEndian, option)
 
 		if err := buf.WriteByte(option.Header.Code); err != nil {
-			log.Printf("Failed writing option code to buf: %v", err)
-			continue
+			return fmt.Errorf("Failed writing option code to buf: %v", err)
 		}
 
 		// If any of the following fail, we may generate badly corrupted data
 		if err := buf.WriteByte(option.Header.Length); err != nil {
-			log.Printf("Failed writing option length to buf: %v", err)
-			continue
+			return fmt.Errorf("Failed writing option length to buf: %v", err)
 		}
 		if len(option.Data) > 0 {
 			if _, err := buf.Write(option.Data); err != nil {
-				log.Printf("Failed writing option data to buf: %v", err)
-				continue
+				return fmt.Errorf("Failed writing option data to buf: %v", err)
 			}
 		}
 	}
-	return buf.Bytes()
+	return nil
 }
 
 // Parse options into a list

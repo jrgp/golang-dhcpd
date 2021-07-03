@@ -202,7 +202,7 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 		return
 	}
 
-	_, err = buf.Write(options.Encode())
+	err = options.Encode(buf)
 	if err != nil {
 		log.Printf("Writing dhcp options to our payload: %v", err)
 		return
