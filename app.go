@@ -52,7 +52,7 @@ func (a *App) insertPool(p *Pool) error {
 	return nil
 }
 
-func (a *App) OObToInterface(oob []byte) (string, error) {
+func (a *App) oObToInterface(oob []byte) (string, error) {
 	cm := &ipv4.ControlMessage{}
 
 	if err := cm.Parse(oob); err != nil {
@@ -68,7 +68,7 @@ func (a *App) OObToInterface(oob []byte) (string, error) {
 	return Interface.Name, nil
 }
 
-func (a *App) FindPoolByInterface(Interface string) (*Pool, error) {
+func (a *App) findPoolByInterface(Interface string) (*Pool, error) {
 	pool, ok := a.interface2Pool[Interface]
 	if !ok {
 		return nil, errors.New("Unconfigured")
@@ -77,15 +77,16 @@ func (a *App) FindPoolByInterface(Interface string) (*Pool, error) {
 }
 
 func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr) {
-	Interface, err := a.OObToInterface(myOob)
+	Interface, err := a.oObToInterface(myOob)
 	if err != nil {
 		log.Printf("Failed parsing interface out of OOB: %v", err)
 		return
 	}
-	pool, err := a.FindPoolByInterface(Interface)
+	pool, err := a.findPoolByInterface(Interface)
 	if err != nil {
 		log.Printf("Ignoring DHCP traffic on unknown interface %v", Interface)
 		return
 	}
-	NewConnectionHandler(myBuf, remote, pool).Handle()
+	handler := NewConnectionHandler(myBuf, remote, pool)
+	handler.Handle()
 }

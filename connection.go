@@ -26,6 +26,21 @@ func NewConnectionHandler(buf []byte, remote *net.UDPAddr, pool *Pool) *Connecti
 	}
 }
 
+func (c *ConnectionHandler) Handle() {
+	if err := c.ParseRequest(); err != nil {
+		log.Printf("Failed parsing request: %v", err)
+		return
+	}
+	switch c.request.Op {
+	case DHCPDISCOVER:
+		c.HandleDiscover()
+	case DHCPREQUEST:
+		c.HandleRequest()
+	default:
+		log.Printf("Unimplemented op %v", c.request.Op)
+	}
+}
+
 func (c *ConnectionHandler) ParseRequest() error {
 	if c.remote.Port != 68 {
 		return fmt.Errorf("Source port is %d rather than 68", c.remote.Port)
@@ -73,21 +88,6 @@ func (c *ConnectionHandler) ParseRequest() error {
 	}
 
 	return nil
-}
-
-func (c *ConnectionHandler) Handle() {
-	if err := c.ParseRequest(); err != nil {
-		log.Printf("Failed parsing request: %v", err)
-		return
-	}
-	switch c.request.Op {
-	case DHCPDISCOVER:
-		c.HandleDiscover()
-	case DHCPREQUEST:
-		c.HandleRequest()
-	default:
-		log.Printf("Unimplemented op %v", c.request.Op)
-	}
 }
 
 func (c *ConnectionHandler) HandleDiscover() {
