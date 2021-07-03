@@ -45,11 +45,11 @@ func NewPool(network, start, end, netmask net.IP, router, dns []net.IP, leaseTim
 
 // Hacky, terrible, naive impl. I want an ordered int set!
 func (p *Pool) getNextIp() (FixedV4, error) {
-	start := ip2long(p.Start.String())
-	end := ip2long(p.End.String())
+	start := ip2long(p.Start)
+	end := ip2long(p.End)
 	var found FixedV4
 	for ipInt := start; ipInt <= end; ipInt++ {
-		found := IpToFixedV4(net.ParseIP(long2ip(ipInt)))
+		found := IpToFixedV4(long2ip(ipInt))
 		if _, ok := p.leaseByIp[found]; !ok {
 			return found, nil
 		}
