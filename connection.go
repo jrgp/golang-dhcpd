@@ -130,7 +130,8 @@ func (c *ConnectionHandler) HandleRequest() {
 	var ok bool
 	if lease, ok = c.app.Pool.GetLeaseByMac(mac); !ok {
 		// FIXME: handle this gracefully
-		log.Printf("Unrecognized lease for %v: %v", mac.String())
+		log.Printf("Unrecognized lease for %v. Rebranding as discover.", mac.String())
+		c.HandleDiscover()
 		return
 	}
 
