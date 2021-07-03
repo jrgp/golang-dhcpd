@@ -1,8 +1,6 @@
 package main
 
 import (
-	"golang.org/x/net/ipv4"
-
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -11,21 +9,20 @@ import (
 )
 
 type ConnectionHandler struct {
-	buf, oob       []byte
+	buf            []byte
 	reader         *bytes.Reader
 	remote         *net.UDPAddr
 	request        *MessageHeader
 	requestOptions *Options
 	optionType     byte
-	app            *App
+	pool           *Pool
 }
 
-func NewConnectionHandler(buf, oob []byte, remote *net.UDPAddr, app *App) *ConnectionHandler {
+func NewConnectionHandler(buf []byte, remote *net.UDPAddr, pool *Pool) *ConnectionHandler {
 	return &ConnectionHandler{
 		buf:    buf,
-		oob:    oob,
 		remote: remote,
-		app:    app,
+		pool:   pool,
 	}
 }
 
@@ -79,17 +76,6 @@ func (c *ConnectionHandler) ParseRequest() error {
 }
 
 func (c *ConnectionHandler) Handle() {
-	cm := &ipv4.ControlMessage{}
-	if err := cm.Parse(c.oob); err == nil {
-		if cm.IfIndex != c.app.Pool.Nic.Index {
-			log.Printf("Ignoring dhcp traffic on other interface")
-			return
-		}
-	} else {
-		log.Printf("failed parsing oob: %v", err)
-		return
-	}
-
 	if err := c.ParseRequest(); err != nil {
 		log.Printf("Failed parsing request: %v", err)
 		return
@@ -107,13 +93,13 @@ func (c *ConnectionHandler) Handle() {
 func (c *ConnectionHandler) HandleDiscover() {
 	mac := c.request.Mac
 	log.Printf("DHCPDISCOVER from %v", mac.String())
-	if lease, ok := c.app.Pool.GetLeaseByMac(mac); ok {
+	if lease, ok := c.pool.GetLeaseByMac(mac); ok {
 		log.Printf("Have old lease for %v: %v", mac.String(), lease.IP.String())
 		c.SendLeaseInfo(lease, DHCPOFFER)
 		return
 	}
 
-	lease, err := c.app.Pool.GetNextLease(mac, "")
+	lease, err := c.pool.GetNextLease(mac, "")
 	if err != nil {
 		log.Printf("Could not get a new lease for %v", mac.String())
 		return
@@ -128,7 +114,7 @@ func (c *ConnectionHandler) HandleRequest() {
 	log.Printf("DHCPREQUEST from %v", mac.String())
 	var lease *Lease
 	var ok bool
-	if lease, ok = c.app.Pool.GetLeaseByMac(mac); !ok {
+	if lease, ok = c.pool.GetLeaseByMac(mac); !ok {
 		// FIXME: handle this gracefully
 		log.Printf("Unrecognized lease for %v. Rebranding as discover.", mac.String())
 		c.HandleDiscover()
@@ -155,7 +141,7 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 		Hops:       0,
 		Identifier: c.request.Identifier,
 		YourAddr:   lease.IP,
-		ServerAddr: c.app.MyIp,
+		ServerAddr: c.pool.MyIp,
 		Mac:        c.request.Mac,
 		Magic:      Magic,
 	}
@@ -168,31 +154,31 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 	options.Set(OPTION_MESSAGE_TYPE, []byte{op})
 
 	// Netmask option
-	options.Set(OPTION_SUBNET, IpToFixedV4(c.app.Pool.Netmask).Bytes())
+	options.Set(OPTION_SUBNET, IpToFixedV4(c.pool.Netmask).Bytes())
 
 	// Router (defgw)
-	if len(c.app.Pool.Router) > 0 {
-		bytes := make([]byte, 0, 4*len(c.app.Pool.Router))
-		for _, ip := range c.app.Pool.Router {
+	if len(c.pool.Router) > 0 {
+		bytes := make([]byte, 0, 4*len(c.pool.Router))
+		for _, ip := range c.pool.Router {
 			bytes = append(bytes, ip...)
 		}
 		options.Set(OPTION_ROUTER, bytes)
 	}
 
 	// DNS servers
-	if len(c.app.Dns) > 0 {
-		bytes := make([]byte, 0, 4*len(c.app.Pool.Dns))
-		for _, ip := range c.app.Pool.Dns {
+	if len(c.pool.Dns) > 0 {
+		bytes := make([]byte, 0, 4*len(c.pool.Dns))
+		for _, ip := range c.pool.Dns {
 			bytes = append(bytes, ip...)
 		}
 		options.Set(OPTION_DNS_SERVER, bytes)
 	}
 
 	// Lease time
-	options.Set(OPTION_LEASE_TIME, long2bytes(c.app.Pool.LeaseTime))
+	options.Set(OPTION_LEASE_TIME, long2bytes(c.pool.LeaseTime))
 
 	// DHCP server
-	options.Set(OPTION_SERVER_ID, c.app.MyIp.Bytes())
+	options.Set(OPTION_SERVER_ID, c.pool.MyIp.Bytes())
 
 	buf := new(bytes.Buffer)
 
@@ -220,7 +206,7 @@ func (c *ConnectionHandler) sendBroadcast(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("Failed resolving local: %v", err)
 	}
-	dest := c.app.Pool.Broadcast.String() + ":68"
+	dest := c.pool.Broadcast.String() + ":68"
 	remote, err := net.ResolveUDPAddr("udp4", dest)
 	if err != nil {
 		return fmt.Errorf("Failed resolving remote: %v", err)

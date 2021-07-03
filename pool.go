@@ -19,10 +19,11 @@ type Pool struct {
 	Broadcast net.IP
 	Start     net.IP
 	End       net.IP
+	MyIp      FixedV4
 	Router    []net.IP
 	Dns       []net.IP
 	LeaseTime uint32
-	Nic       *net.Interface
+	Interface string
 
 	leasesByMac map[MacAddress]*Lease
 	leaseByIp   map[FixedV4]*Lease

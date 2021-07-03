@@ -6,36 +6,16 @@ import (
 	"syscall"
 )
 
-type App struct {
-	Pool    *Pool
-	Routers []string
-	Dns     []string
-	MyIp    FixedV4
-}
-
 func main() {
 	var err error
 
-	nic, err := net.InterfaceByName("eth1")
+	app := NewApp()
+
+	err = app.InitPools()
+
 	if err != nil {
-		log.Fatalf("Cannot get interface: %v", err)
+		log.Fatalf("Failed initializing pools: %v", err)
 	}
-
-	app := &App{
-		Pool: NewPool(
-			net.ParseIP("172.17.0.0"),
-			net.ParseIP("172.17.0.100"),
-			net.ParseIP("172.17.0.200"),
-			net.ParseIP("255.255.255.0"),
-			[]net.IP{net.ParseIP("172.17.0.1")},
-			[]net.IP{net.ParseIP("1.1.1.1"), net.ParseIP("1.1.1.2")},
-			60,
-		),
-		MyIp: IpToFixedV4(net.ParseIP("172.17.0.2")),
-	}
-
-	app.Pool.Nic = nic
-	app.Pool.Broadcast = calcBroadcast(app.Pool.Network, app.Pool.Netmask)
 
 	addr := net.UDPAddr{
 		Port: 67,
@@ -67,6 +47,7 @@ func main() {
 			log.Printf("Failed accepting: %v", err)
 			continue
 		}
-		go NewConnectionHandler(buf[:len], oob[:ooblen], remote, app).Handle()
+
+		go app.DispatchMessage(buf[:len], oob[:ooblen], remote)
 	}
 }
