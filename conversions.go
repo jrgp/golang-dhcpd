@@ -37,3 +37,8 @@ func bytes2long(ip []byte) uint32 {
 	binary.Read(bytes.NewBuffer(ip), binary.LittleEndian, &long)
 	return long
 }
+
+func calcBroadcast(network, netmask net.IP) net.IP {
+	broadcastInt := ip2long(network.String()) | ^ip2long(netmask.String())
+	return net.ParseIP(long2ip(broadcastInt))
+}

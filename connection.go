@@ -168,7 +168,7 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 	options.Set(OPTION_MESSAGE_TYPE, []byte{op})
 
 	// Netmask option
-	options.Set(OPTION_SUBNET, IpToFixedV4(c.app.Pool.Mask).Bytes())
+	options.Set(OPTION_SUBNET, IpToFixedV4(c.app.Pool.Netmask).Bytes())
 
 	// Router (defgw)
 	if len(c.app.Pool.Router) > 0 {
@@ -220,7 +220,8 @@ func (c *ConnectionHandler) sendBroadcast(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("Failed resolving local: %v", err)
 	}
-	remote, err := net.ResolveUDPAddr("udp4", "172.17.0.255:68") // FIXME: don't hardcode the address here
+	dest := c.app.Pool.Broadcast.String() + ":68"
+	remote, err := net.ResolveUDPAddr("udp4", dest)
 	if err != nil {
 		return fmt.Errorf("Failed resolving remote: %v", err)
 	}
