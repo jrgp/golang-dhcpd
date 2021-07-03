@@ -1,0 +1,11 @@
+pools:
+  - name: vm testing
+    interface: eth1
+    network: 172.17.0.0
+    mask: 255.255.255.0
+    start: 172.17.0.100
+    end: 172.17.0.200
+    leasetime: 60
+    myip: 172.17.0.1
+    routers: [ 172.17.0.1 ]
+    dns: [ 1.1.1.1, 8.8.8.8 ]

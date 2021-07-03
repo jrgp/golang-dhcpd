@@ -20,23 +20,19 @@ func NewApp() *App {
 	}
 }
 
-func (a *App) InitPools() error {
-	// FIXME: load all of these from configuration
-	pool := NewPool(
-		net.ParseIP("172.17.0.0"),
-		net.ParseIP("172.17.0.100"),
-		net.ParseIP("172.17.0.200"),
-		net.ParseIP("255.255.255.0"),
-		[]net.IP{net.ParseIP("172.17.0.1")},
-		[]net.IP{net.ParseIP("1.1.1.1"), net.ParseIP("1.1.1.2")},
-		60,
-	)
+func (a *App) InitPools(conf *Conf) error {
 
-	pool.Interface = "eth1"
-	pool.Broadcast = calcBroadcast(pool.Network, pool.Netmask)
-	pool.MyIp = IpToFixedV4(net.ParseIP("172.17.0.2"))
+	for _, pc := range conf.Pools {
+		pool, err := pc.ToPool()
+		if err != nil {
+			return err
+		}
 
-	a.insertPool(pool)
+		err = a.insertPool(pool)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

@@ -1,17 +1,35 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net"
 	"syscall"
 )
 
+func getConfPath() string {
+	conf := flag.String("conf", "", "Path to configuration yaml file")
+	flag.Parse()
+	return *conf
+}
+
 func main() {
 	var err error
 
+	confPath := getConfPath()
+
+	if confPath == "" {
+		log.Fatalf("Configuration file path not given")
+	}
+
+	conf, err := ParseConf(confPath)
+	if err != nil {
+		log.Fatalf("Failed parsing conf: %v", err)
+	}
+
 	app := NewApp()
 
-	err = app.InitPools()
+	err = app.InitPools(conf)
 
 	if err != nil {
 		log.Fatalf("Failed initializing pools: %v", err)

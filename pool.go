@@ -14,6 +14,7 @@ type Lease struct {
 }
 
 type Pool struct {
+	Name      string
 	Network   net.IP
 	Netmask   net.IP
 	Broadcast net.IP
@@ -30,15 +31,8 @@ type Pool struct {
 	m           sync.RWMutex
 }
 
-func NewPool(network, start, end, netmask net.IP, router, dns []net.IP, leaseTime uint32) *Pool {
+func NewPool() *Pool {
 	return &Pool{
-		Network:     network,
-		Start:       start,
-		End:         end,
-		Netmask:     netmask,
-		Router:      router,
-		Dns:         dns,
-		LeaseTime:   leaseTime,
 		leasesByMac: map[MacAddress]*Lease{},
 		leaseByIp:   map[FixedV4]*Lease{},
 	}

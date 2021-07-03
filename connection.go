@@ -101,7 +101,7 @@ func (c *ConnectionHandler) HandleDiscover() {
 
 	lease, err := c.pool.GetNextLease(mac, "")
 	if err != nil {
-		log.Printf("Could not get a new lease for %v", mac.String())
+		log.Printf("Could not get a new lease for %v: %v", mac.String(), err)
 		return
 	}
 
