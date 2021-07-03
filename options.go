@@ -7,11 +7,6 @@ import (
 	"log"
 )
 
-// Some option constants
-const (
-	OptionSentinel = 255
-)
-
 // A single DHCP option
 type Option struct {
 	Header struct {
@@ -74,8 +69,8 @@ func (o *Options) Encode() []byte {
 	buf := new(bytes.Buffer)
 
 	// Need the sentinel value at the end
-	if len(o.order) > 0 && o.order[len(o.order)-1] != OptionSentinel {
-		o.Set(OptionSentinel, nil)
+	if len(o.order) > 0 && o.order[len(o.order)-1] != OPTION_SENTINEL {
+		o.Set(OPTION_SENTINEL, nil)
 	}
 
 	for _, code := range o.order {
@@ -121,7 +116,7 @@ func ParseOptions(reader *bytes.Reader) *Options {
 		// Used for padding to word boundaries. FIXME: padding won't be followed by length byte
 		if option.Header.Code == 0 {
 			continue
-		} else if option.Header.Code == 255 {
+		} else if option.Header.Code == OPTION_SENTINEL {
 			// The end
 			break
 		}

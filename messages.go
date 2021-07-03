@@ -6,23 +6,6 @@ import (
 	"net"
 )
 
-const (
-	// The order here is crucial
-	DHCPDISCOVER = iota + 1
-	DHCPOFFER
-	DHCPREQUEST
-	DHCPDECLINE
-	DHCPACK
-	DHCPNAK
-	DHCPRELEASE
-	DHCPINFORM
-)
-
-var opNames = map[byte]string{
-	DHCPOFFER: "DHCPOFFER",
-	DHCPACK:   "DHCPACK",
-}
-
 // Fixed-width byte array to keep track of IPv4 IPs
 type FixedV4 [4]byte
 

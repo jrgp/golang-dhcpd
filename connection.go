@@ -57,14 +57,14 @@ func (c *ConnectionHandler) ParseRequest() error {
 	c.requestOptions = ParseOptions(c.reader)
 
 	// Confusingly, the Op type can be overridden using an option
-	if option, ok := c.requestOptions.Get(53); ok {
+	if option, ok := c.requestOptions.Get(OPTION_MESSAGE_TYPE); ok {
 		if option.Header.Length == 1 {
 			c.request.Op = option.Data[0]
 		}
 	}
 
 	// Similarly, so can the ClientAddr
-	if option, ok := c.requestOptions.Get(50); ok {
+	if option, ok := c.requestOptions.Get(OPTION_REQUESTED_IP); ok {
 		if option.Header.Length == 4 {
 			ip, err := BytesToFixedV4(option.Data)
 			if err == nil {
@@ -164,13 +164,11 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 
 	options := NewOptions()
 
-	// FIXME: replace the following magic numbers with constants!
-
 	// Message type
-	options.Set(53, []byte{op})
+	options.Set(OPTION_MESSAGE_TYPE, []byte{op})
 
 	// Netmask option
-	options.Set(1, IpToFixedV4(c.app.Pool.Mask).Bytes())
+	options.Set(OPTION_SUBNET, IpToFixedV4(c.app.Pool.Mask).Bytes())
 
 	// Router (defgw)
 	if len(c.app.Pool.Router) > 0 {
@@ -178,7 +176,7 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 		for _, ip := range c.app.Pool.Router {
 			bytes = append(bytes, ip...)
 		}
-		options.Set(3, bytes)
+		options.Set(OPTION_ROUTER, bytes)
 	}
 
 	// DNS servers
@@ -187,14 +185,14 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 		for _, ip := range c.app.Pool.Dns {
 			bytes = append(bytes, ip...)
 		}
-		options.Set(6, bytes)
+		options.Set(OPTION_DNS_SERVER, bytes)
 	}
 
 	// Lease time
-	options.Set(51, long2bytes(c.app.Pool.LeaseTime))
+	options.Set(OPTION_LEASE_TIME, long2bytes(c.app.Pool.LeaseTime))
 
 	// DHCP server
-	options.Set(54, c.app.MyIp.Bytes())
+	options.Set(OPTION_SERVER_ID, c.app.MyIp.Bytes())
 
 	buf := new(bytes.Buffer)
 
