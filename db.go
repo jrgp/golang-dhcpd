@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"net"
 	"sync"
 )
 
@@ -19,6 +20,7 @@ type Pool struct {
 	Router    []uint32
 	Dns       []uint32
 	LeaseTime uint32
+	Nic       *net.Interface
 
 	leasesByMac map[MacAddress]*Lease
 	leaseByIp   map[uint32]*Lease

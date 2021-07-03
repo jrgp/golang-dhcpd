@@ -1,6 +1,8 @@
 package main
 
 import (
+	"golang.org/x/net/ipv4"
+
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -9,7 +11,7 @@ import (
 )
 
 type ConnectionHandler struct {
-	buf            []byte
+	buf, oob       []byte
 	reader         *bytes.Reader
 	remote         *net.UDPAddr
 	request        *MessageHeader
@@ -18,9 +20,10 @@ type ConnectionHandler struct {
 	app            *App
 }
 
-func NewConnectionHandler(buf []byte, remote *net.UDPAddr, app *App) *ConnectionHandler {
+func NewConnectionHandler(buf, oob []byte, remote *net.UDPAddr, app *App) *ConnectionHandler {
 	return &ConnectionHandler{
 		buf:    buf,
+		oob:    oob,
 		remote: remote,
 		app:    app,
 	}
@@ -71,6 +74,17 @@ func (c *ConnectionHandler) ParseRequest() error {
 }
 
 func (c *ConnectionHandler) Handle() {
+	cm := &ipv4.ControlMessage{}
+	if err := cm.Parse(c.oob); err == nil {
+		if cm.IfIndex != c.app.Pool.Nic.Index {
+			log.Printf("Ignoring dhcp traffic on other interface")
+			return
+		}
+	} else {
+		log.Printf("failed parsing oob: %v", err)
+		return
+	}
+
 	if err := c.ParseRequest(); err != nil {
 		log.Printf("Failed parsing request: %v", err)
 		return
