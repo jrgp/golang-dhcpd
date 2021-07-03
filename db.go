@@ -9,25 +9,25 @@ import (
 type Lease struct {
 	Mac        MacAddress
 	Hostname   string
-	IP         uint32
+	IP         FixedV4
 	Expiration float64
 }
 
 type Pool struct {
-	Start     uint32
-	End       uint32
-	Mask      uint32
-	Router    []uint32
-	Dns       []uint32
+	Start     net.IP
+	End       net.IP
+	Mask      net.IP
+	Router    []net.IP
+	Dns       []net.IP
 	LeaseTime uint32
 	Nic       *net.Interface
 
 	leasesByMac map[MacAddress]*Lease
-	leaseByIp   map[uint32]*Lease
+	leaseByIp   map[FixedV4]*Lease
 	m           sync.RWMutex
 }
 
-func NewPool(start, end, mask uint32, router, dns []uint32, leaseTime uint32) *Pool {
+func NewPool(start, end, mask net.IP, router, dns []net.IP, leaseTime uint32) *Pool {
 	return &Pool{
 		Start:       start,
 		End:         end,
@@ -36,18 +36,22 @@ func NewPool(start, end, mask uint32, router, dns []uint32, leaseTime uint32) *P
 		Dns:         dns,
 		LeaseTime:   leaseTime,
 		leasesByMac: map[MacAddress]*Lease{},
-		leaseByIp:   map[uint32]*Lease{},
+		leaseByIp:   map[FixedV4]*Lease{},
 	}
 }
 
 // Hacky, terrible, naive impl. I want an ordered int set!
-func (p *Pool) getNextIp() (uint32, error) {
-	for ip := p.Start; ip <= p.End; ip++ {
-		if _, ok := p.leaseByIp[ip]; !ok {
-			return ip, nil
+func (p *Pool) getNextIp() (FixedV4, error) {
+	start := ip2long(p.Start.String())
+	end := ip2long(p.End.String())
+	var found FixedV4
+	for ipInt := start; ipInt <= end; ipInt++ {
+		found := IpToFixedV4(net.ParseIP(long2ip(ipInt)))
+		if _, ok := p.leaseByIp[found]; !ok {
+			return found, nil
 		}
 	}
-	return 0, errors.New("No free IPs")
+	return found, errors.New("No free IPs")
 }
 
 func (p *Pool) insertLease(lease *Lease) {

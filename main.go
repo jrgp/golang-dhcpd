@@ -10,7 +10,7 @@ type App struct {
 	Pool    *Pool
 	Routers []string
 	Dns     []string
-	MyIp    uint32
+	MyIp    FixedV4
 }
 
 func main() {
@@ -23,14 +23,14 @@ func main() {
 
 	app := &App{
 		Pool: NewPool(
-			ip2long("172.17.0.100"),
-			ip2long("172.17.0.200"),
-			ip2long("255.255.255.0"),
-			[]uint32{ip2long("172.17.0.1")},
-			[]uint32{ip2long("1.1.1.1"), ip2long("1.1.1.2")},
+			net.ParseIP("172.17.0.100"),
+			net.ParseIP("172.17.0.200"),
+			net.ParseIP("255.255.255.0"),
+			[]net.IP{net.ParseIP("172.17.0.1")},
+			[]net.IP{net.ParseIP("1.1.1.1"), net.ParseIP("1.1.1.2")},
 			600,
 		),
-		MyIp: ip2long("172.17.0.2"),
+		MyIp: IpToFixedV4(net.ParseIP("172.17.0.2")),
 	}
 
 	app.Pool.Nic = nic

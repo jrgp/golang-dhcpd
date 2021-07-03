@@ -66,7 +66,12 @@ func (c *ConnectionHandler) ParseRequest() error {
 	// Similarly, so can the ClientAddr
 	if option, ok := c.requestOptions.Get(50); ok {
 		if option.Header.Length == 4 {
-			c.request.ClientAddr = bytes2long(option.Data)
+			ip, err := BytesToFixedV4(option.Data)
+			if err == nil {
+				c.request.ClientAddr = ip
+			} else {
+				log.Printf("Failed converting byte stream to fixed v4")
+			}
 		}
 	}
 
@@ -103,7 +108,7 @@ func (c *ConnectionHandler) HandleDiscover() {
 	mac := c.request.Mac
 	log.Printf("DHCPDISCOVER from %v", mac.String())
 	if lease, ok := c.app.Pool.GetLeaseByMac(mac); ok {
-		log.Printf("Have old lease for %v: %v", mac.String(), long2ip(lease.IP))
+		log.Printf("Have old lease for %v: %v", mac.String(), lease.IP.String())
 		c.SendLeaseInfo(lease, DHCPOFFER)
 		return
 	}
@@ -114,7 +119,7 @@ func (c *ConnectionHandler) HandleDiscover() {
 		return
 	}
 
-	log.Printf("Got a new lease for %v: %v", mac.String(), long2ip(lease.IP))
+	log.Printf("Got a new lease for %v: %v", mac.String(), lease.IP.String())
 	c.SendLeaseInfo(lease, DHCPOFFER)
 }
 
@@ -154,7 +159,7 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 		Magic:      Magic,
 	}
 
-	log.Printf("Sending %s with %v to %v", opNames[op], long2ip(lease.IP), c.request.Mac.String())
+	log.Printf("Sending %s with %v to %v", opNames[op], lease.IP.String(), c.request.Mac.String())
 
 	options := NewOptions()
 
@@ -164,13 +169,13 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 	options.Set(53, []byte{op})
 
 	// Netmask option
-	options.Set(1, long2bytes(c.app.Pool.Mask))
+	options.Set(1, IpToFixedV4(c.app.Pool.Mask).Bytes())
 
 	// Router (defgw)
 	if len(c.app.Pool.Router) > 0 {
 		bytes := make([]byte, 0, 4*len(c.app.Pool.Router))
 		for _, ip := range c.app.Pool.Router {
-			bytes = append(bytes, long2bytes(ip)...)
+			bytes = append(bytes, ip...)
 		}
 		options.Set(3, bytes)
 	}
@@ -179,7 +184,7 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 	if len(c.app.Dns) > 0 {
 		bytes := make([]byte, 0, 4*len(c.app.Pool.Dns))
 		for _, ip := range c.app.Pool.Dns {
-			bytes = append(bytes, long2bytes(ip)...)
+			bytes = append(bytes, ip...)
 		}
 		options.Set(6, bytes)
 	}
@@ -188,7 +193,7 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 	options.Set(51, long2bytes(c.app.Pool.LeaseTime))
 
 	// DHCP server
-	options.Set(54, long2bytes(c.app.MyIp))
+	options.Set(54, c.app.MyIp.Bytes())
 
 	buf := new(bytes.Buffer)
 
