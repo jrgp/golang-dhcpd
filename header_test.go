@@ -17,6 +17,15 @@ func TestMessageParseEncode(t *testing.T) {
 	header, err := ParseMessageHeader(reader)
 	require.Nil(t, err)
 
+	// Break things slightly to ensure .Encode fixes them, and that we don't
+	// need to set them manually when creating messages
+	header.Magic[0] = 0
+	header.Magic[1] = 0
+	header.Magic[2] = 0
+	header.Magic[3] = 0
+	header.HLen = 0
+	header.HType = 0
+
 	buf := new(bytes.Buffer)
 	err = header.Encode(buf)
 	require.Nil(t, err)

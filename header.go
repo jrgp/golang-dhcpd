@@ -71,6 +71,10 @@ type MessageHeader struct {
 }
 
 func (h *MessageHeader) Encode(buf *bytes.Buffer) error {
+	// Set constant boilerplate
+	h.Magic = Magic
+	h.HType = 1
+	h.HLen = 6
 	return binary.Write(buf, binary.LittleEndian, h)
 }
 

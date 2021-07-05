@@ -86,14 +86,11 @@ func (c *ConnectionHandler) HandleRequest() {
 func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 	header := &MessageHeader{
 		Op:         op,
-		HType:      1,
-		HLen:       6,
 		Hops:       0,
 		Identifier: c.request.Identifier,
 		YourAddr:   lease.IP,
 		ServerAddr: c.pool.MyIp,
 		Mac:        c.request.Mac,
-		Magic:      Magic,
 	}
 
 	log.Printf("Sending %s with %v to %v", opNames[op], lease.IP.String(), c.request.Mac.String())
@@ -130,63 +127,40 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 	// DHCP server
 	options.Set(OPTION_SERVER_ID, c.pool.MyIp.Bytes())
 
-	buf := new(bytes.Buffer)
-
-	err := header.Encode(buf)
-	if err != nil {
-		log.Printf("Writing dhcp header to our payload: %v", err)
-		return
-	}
-
-	err = options.Encode(buf)
-	if err != nil {
-		log.Printf("Writing dhcp options to our payload: %v", err)
-		return
-	}
-
-	err = c.sendBroadcast(buf.Bytes())
-	if err != nil {
-		log.Printf("Failed sending %s payload: %v", opNames[op], err)
-	}
+	c.sendMessageBroadcast(&DHCPMessage{header, options})
 }
 
 func (c *ConnectionHandler) SendNAK() {
 	header := &MessageHeader{
 		Op:         DHCPNAK,
-		HType:      1,
-		HLen:       6,
 		Hops:       0,
 		Identifier: c.request.Identifier,
 		ServerAddr: c.pool.MyIp,
 		Mac:        c.request.Mac,
-		Magic:      Magic,
 	}
 
 	log.Printf("Sending %s to %v", opNames[header.Op], c.request.Mac.String())
 
 	options := NewOptions()
-
 	options.Set(OPTION_MESSAGE_TYPE, []byte{header.Op})
 
 	// FIXME: we likely need more options
 
+	c.sendMessageBroadcast(&DHCPMessage{header, options})
+}
+
+func (c *ConnectionHandler) sendMessageBroadcast(message *DHCPMessage) {
 	buf := new(bytes.Buffer)
 
-	err := header.Encode(buf)
+	err := message.Encode(buf)
 	if err != nil {
-		log.Printf("Writing dhcp header to our payload: %v", err)
-		return
-	}
-
-	err = options.Encode(buf)
-	if err != nil {
-		log.Printf("Writing dhcp options to our payload: %v", err)
+		log.Printf("Failed encoding payload: %v", err)
 		return
 	}
 
 	err = c.sendBroadcast(buf.Bytes())
 	if err != nil {
-		log.Printf("Failed sending %s payload: %v", opNames[header.Op], err)
+		log.Printf("Failed sending %s payload: %v", opNames[message.Header.Op], err)
 	}
 }
 
