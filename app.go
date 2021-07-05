@@ -78,20 +78,31 @@ func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr) {
 		log.Printf("Failed parsing interface out of OOB: %v", err)
 		return
 	}
+
 	pool, err := a.findPoolByInterface(Interface)
 	if err != nil {
 		log.Printf("Ignoring DHCP traffic on unknown interface %v", Interface)
 		return
 	}
+
 	if remote.Port != 68 {
 		log.Printf("Ignoring DHCP packet with source port %d rather than 68", remote.Port)
 		return
 	}
+
 	message, err := ParseDhcpMessage(myBuf)
 	if err != nil {
 		log.Printf("Failed parsing dhcp packet: %v", err)
 		return
 	}
-	handler := NewConnectionHandler(message, remote, pool)
-	handler.Handle()
+
+	handler := NewRequestHandler(message, pool)
+
+	response := handler.Handle()
+
+	if response != nil {
+		// FIXME: options to sending to unicast, sending to relay, etc. Move these send functions
+		// somewhere else.
+		handler.sendMessageBroadcast(response)
+	}
 }
