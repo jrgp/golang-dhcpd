@@ -62,20 +62,19 @@ func (c *ConnectionHandler) HandleDiscover() {
 
 func (c *ConnectionHandler) HandleRequest() {
 	mac := c.request.Mac
-	log.Printf("DHCPREQUEST from %v", mac.String())
+	log.Printf("DHCPREQUEST from %v for %v", mac.String(), c.request.ClientAddr.String())
 	var lease *Lease
 	var ok bool
 	if lease, ok = c.pool.GetLeaseByMac(mac); !ok {
-		// FIXME: handle this gracefully
-		log.Printf("Unrecognized lease for %v. Rebranding as discover.", mac.String())
-		c.HandleDiscover()
+		log.Printf("Unrecognized lease for %v", mac.String())
+		c.SendNAK()
 		return
 	}
 
 	// Verify IP matches what is in our lease
 	if c.request.ClientAddr != lease.IP {
-		// FIXME: handle this gracefully
 		log.Printf("Client IP does not match! %v != %v (expected)", c.request.ClientAddr, lease.IP)
+		c.SendNAK()
 		return
 	}
 
@@ -148,6 +147,46 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 	err = c.sendBroadcast(buf.Bytes())
 	if err != nil {
 		log.Printf("Failed sending %s payload: %v", opNames[op], err)
+	}
+}
+
+func (c *ConnectionHandler) SendNAK() {
+	header := &MessageHeader{
+		Op:         DHCPNAK,
+		HType:      1,
+		HLen:       6,
+		Hops:       0,
+		Identifier: c.request.Identifier,
+		ServerAddr: c.pool.MyIp,
+		Mac:        c.request.Mac,
+		Magic:      Magic,
+	}
+
+	log.Printf("Sending %s to %v", opNames[header.Op], c.request.Mac.String())
+
+	options := NewOptions()
+
+	options.Set(OPTION_MESSAGE_TYPE, []byte{header.Op})
+
+	// FIXME: we likely need more options
+
+	buf := new(bytes.Buffer)
+
+	err := header.Encode(buf)
+	if err != nil {
+		log.Printf("Writing dhcp header to our payload: %v", err)
+		return
+	}
+
+	err = options.Encode(buf)
+	if err != nil {
+		log.Printf("Writing dhcp options to our payload: %v", err)
+		return
+	}
+
+	err = c.sendBroadcast(buf.Bytes())
+	if err != nil {
+		log.Printf("Failed sending %s payload: %v", opNames[header.Op], err)
 	}
 }
 

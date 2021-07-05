@@ -4,12 +4,12 @@ package main
 // DHCP Message types
 //
 const (
-	DHCPDISCOVER = 1
-	DHCPOFFER    = 2
-	DHCPREQUEST  = 3
+	DHCPDISCOVER = 1 // Implemented
+	DHCPOFFER    = 2 // Implemented
+	DHCPREQUEST  = 3 // Implemented
 	DHCPDECLINE  = 4
-	DHCPACK      = 5
-	DHCPNAK      = 6
+	DHCPACK      = 5 // Implemented
+	DHCPNAK      = 6 // Implemented
 	DHCPRELEASE  = 7
 	DHCPINFORM   = 8
 )
@@ -17,6 +17,7 @@ const (
 var opNames = map[byte]string{
 	DHCPOFFER: "DHCPOFFER",
 	DHCPACK:   "DHCPACK",
+	DHCPNAK:   "DHCPNAK",
 }
 
 //
