@@ -36,15 +36,22 @@ func (c *ConnectionHandler) Handle() {
 }
 
 func (c *ConnectionHandler) HandleDiscover() {
+
+	hostname := ""
+
+	if option, ok := c.requestOptions.Get(OPTION_HOST_NAME); ok {
+		hostname = string(option.Data)
+	}
+
 	mac := c.request.Mac
-	log.Printf("DHCPDISCOVER from %v", mac.String())
+	log.Printf("DHCPDISCOVER from %v (%s)", mac.String(), hostname)
 	if lease, ok := c.pool.GetLeaseByMac(mac); ok {
 		log.Printf("Have old lease for %v: %v", mac.String(), lease.IP.String())
 		c.SendLeaseInfo(lease, DHCPOFFER)
 		return
 	}
 
-	lease, err := c.pool.GetNextLease(mac, "")
+	lease, err := c.pool.GetNextLease(mac, hostname)
 	if err != nil {
 		log.Printf("Could not get a new lease for %v: %v", mac.String(), err)
 		return
