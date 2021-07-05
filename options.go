@@ -116,8 +116,7 @@ func ParseOptions(reader *bytes.Reader) *Options {
 		}
 		// Used for padding to word boundaries.
 		if option.Header.Code == 0 {
-			// !!!: Padding won't be followed by length byte. Go back one.
-			// FIXME: verify this works
+			// !!!: Padding won't be followed by the length byte. Go back one.
 			reader.Seek(-1, io.SeekCurrent)
 			continue
 		} else if option.Header.Code == OPTION_SENTINEL {
