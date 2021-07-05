@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"log"
 	"net"
@@ -134,7 +133,7 @@ func (c *ConnectionHandler) SendLeaseInfo(lease *Lease, op byte) {
 
 	buf := new(bytes.Buffer)
 
-	err := binary.Write(buf, binary.LittleEndian, header)
+	err := header.Encode(buf)
 	if err != nil {
 		log.Printf("Writing dhcp header to our payload: %v", err)
 		return

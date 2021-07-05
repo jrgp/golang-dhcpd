@@ -6,7 +6,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"log"
 )
@@ -24,7 +23,7 @@ func NewDhcpMessage() *DHCPMessage {
 }
 
 func (m *DHCPMessage) Encode(buf *bytes.Buffer) error {
-	err := binary.Write(buf, binary.LittleEndian, m.Header)
+	err := m.Header.Encode(buf)
 	if err != nil {
 		return fmt.Errorf("Writing dhcp header to our payload: %v", err)
 	}
@@ -38,24 +37,11 @@ func (m *DHCPMessage) Encode(buf *bytes.Buffer) error {
 }
 
 func ParseDhcpMessage(buf []byte) (*DHCPMessage, error) {
-	header := &MessageHeader{}
 	reader := bytes.NewReader(buf)
 
-	// Parse DHCP header
-	err := binary.Read(reader, binary.LittleEndian, header)
+	header, err := ParseMessageHeader(reader)
 	if err != nil {
-		return nil, fmt.Errorf("Failed unpacking header into struct: %v", err)
-	}
-
-	// Verify sanity
-	if header.HType != 1 {
-		return nil, fmt.Errorf("Only type 1 (ethernet) supported, not %v", header.HType)
-	}
-	if header.HLen != 6 {
-		return nil, fmt.Errorf("Only 6 len mac addresses supported, not %v", header.HLen)
-	}
-	if header.Magic != Magic {
-		return nil, fmt.Errorf("Incorrect option magic")
+		return nil, err
 	}
 
 	// Parse arbitrary options

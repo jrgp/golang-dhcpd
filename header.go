@@ -4,6 +4,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -43,9 +45,11 @@ func (m MacAddress) String() string {
 	return fmt.Sprintf("%x:%x:%x:%x:%x:%x", m[0], m[1], m[2], m[3], m[4], m[5])
 }
 
-var Magic = [4]byte{99, 130, 83, 99}
-
+//
 // Header of a DHCP payload
+//
+
+var Magic = [4]byte{99, 130, 83, 99}
 
 type MessageHeader struct {
 	Op          byte
@@ -64,4 +68,29 @@ type MessageHeader struct {
 	Hostname    [64]byte
 	Filename    [128]byte
 	Magic       [4]byte // FIXME: convert these 4 bytes to an int
+}
+
+func (h *MessageHeader) Encode(buf *bytes.Buffer) error {
+	return binary.Write(buf, binary.LittleEndian, h)
+}
+
+func ParseMessageHeader(reader *bytes.Reader) (*MessageHeader, error) {
+	header := &MessageHeader{}
+	err := binary.Read(reader, binary.LittleEndian, header)
+	if err != nil {
+		return nil, fmt.Errorf("Failed unpacking header into struct: %v", err)
+	}
+
+	// Verify sanity
+	if header.HType != 1 {
+		return nil, fmt.Errorf("Only type 1 (ethernet) supported, not %v", header.HType)
+	}
+	if header.HLen != 6 {
+		return nil, fmt.Errorf("Only 6 len mac addresses supported, not %v", header.HLen)
+	}
+	if header.Magic != Magic {
+		return nil, fmt.Errorf("Incorrect option magic")
+	}
+
+	return header, nil
 }
