@@ -41,14 +41,14 @@ pools:
 ```
 root@ubuntu1:~/dev/golang-dhcpd# go build
 root@ubuntu1:~/dev/golang-dhcpd# ./mygodhcpd -conf conf.yaml
-2021/07/03 18:50:50 Loaded pool vm testing on interface eth1
-2021/07/03 18:50:54 DHCPREQUEST from 0:1c:42:b4:6e:1d
-2021/07/03 18:50:54 Unrecognized lease for 0:1c:42:b4:6e:1d. Rebranding as discover.
-2021/07/03 18:50:54 DHCPDISCOVER from 0:1c:42:b4:6e:1d
-2021/07/03 18:50:54 Got a new lease for 0:1c:42:b4:6e:1d: 172.17.0.100
-2021/07/03 18:50:54 Sending DHCPOFFER with 172.17.0.100 to 0:1c:42:b4:6e:1d
-2021/07/03 18:50:57 DHCPREQUEST from 0:1c:42:b4:6e:1d
-2021/07/03 18:50:57 Sending DHCPACK with 172.17.0.100 to 0:1c:42:b4:6e:1d
+2021/07/05 21:36:58 Loaded pool vm testing on interface eth1
+2021/07/05 21:37:18 DHCPREQUEST from 0:1c:42:b4:6e:1d for 172.17.0.100
+2021/07/05 21:37:18 Unrecognized lease for 0:1c:42:b4:6e:1d
+2021/07/05 21:37:18 Sending DHCPNAK to 0:1c:42:b4:6e:1d
+2021/07/05 21:37:18 DHCPDISCOVER from 0:1c:42:b4:6e:1d (ubuntu2)
+2021/07/05 21:37:18 Sending DHCPOFFER with 172.17.0.100 to 0:1c:42:b4:6e:1d
+2021/07/05 21:37:18 DHCPREQUEST from 0:1c:42:b4:6e:1d for 172.17.0.100
+2021/07/05 21:37:18 Sending DHCPACK with 172.17.0.100 to 0:1c:42:b4:6e:1d
 ```
 
 ### And in the other VM:
@@ -75,11 +75,12 @@ Verified to work with Alpine's `udhcpc` client.
 
 ## Implemented
 
-- Bare minimum wire protocol for DHCPDISCOVER, DHCPOFFER, DHCPREQUEST, and DHCPACK to work
+- Bare minimum wire protocol for DHCPDISCOVER, DHCPOFFER, DHCPREQUEST, DHCPNAK, and DHCPACK to work
 - Multiple IP Pools, sourced from configuration
 
 ## TODO
 
 - Persist saved leases to disk, to survive restarts
 - Support relay requests, and acting as a relay
+- Support arbitrary options
 - More Tests

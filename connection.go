@@ -35,7 +35,6 @@ func (c *ConnectionHandler) Handle() {
 }
 
 func (c *ConnectionHandler) HandleDiscover() {
-
 	hostname := ""
 
 	if option, ok := c.requestOptions.Get(OPTION_HOST_NAME); ok {
@@ -56,7 +55,6 @@ func (c *ConnectionHandler) HandleDiscover() {
 		return
 	}
 
-	log.Printf("Got a new lease for %v: %v", mac.String(), lease.IP.String())
 	c.SendLeaseInfo(lease, DHCPOFFER)
 }
 
