@@ -9,28 +9,22 @@ import (
 )
 
 type ConnectionHandler struct {
-	buf            []byte
-	reader         *bytes.Reader
 	remote         *net.UDPAddr
 	request        *MessageHeader
 	requestOptions *Options
-	optionType     byte
 	pool           *Pool
 }
 
-func NewConnectionHandler(buf []byte, remote *net.UDPAddr, pool *Pool) *ConnectionHandler {
+func NewConnectionHandler(message *DHCPMessage, remote *net.UDPAddr, pool *Pool) *ConnectionHandler {
 	return &ConnectionHandler{
-		buf:    buf,
-		remote: remote,
-		pool:   pool,
+		remote:         remote,
+		pool:           pool,
+		request:        message.Header,
+		requestOptions: message.Options,
 	}
 }
 
 func (c *ConnectionHandler) Handle() {
-	if err := c.ParseRequest(); err != nil {
-		log.Printf("Failed parsing request: %v", err)
-		return
-	}
 	switch c.request.Op {
 	case DHCPDISCOVER:
 		c.HandleDiscover()
@@ -39,55 +33,6 @@ func (c *ConnectionHandler) Handle() {
 	default:
 		log.Printf("Unimplemented op %v", c.request.Op)
 	}
-}
-
-func (c *ConnectionHandler) ParseRequest() error {
-	if c.remote.Port != 68 {
-		return fmt.Errorf("Source port is %d rather than 68", c.remote.Port)
-	}
-	c.request = &MessageHeader{}
-	c.reader = bytes.NewReader(c.buf)
-
-	// Parse DHCP header
-	err := binary.Read(c.reader, binary.LittleEndian, c.request)
-	if err != nil {
-		return fmt.Errorf("Failed unpacking into struct: %v", err)
-	}
-
-	// Verify sanity
-	if c.request.HType != 1 {
-		return fmt.Errorf("Only type 1 (ethernet) supported")
-	}
-	if c.request.HLen != 6 {
-		return fmt.Errorf("Only 6 len mac addresses supported")
-	}
-	if c.request.Magic != Magic {
-		return fmt.Errorf("Incorrect option magic")
-	}
-
-	// Parse arbitrary options
-	c.requestOptions = ParseOptions(c.reader)
-
-	// Confusingly, the Op type can be overridden using an option
-	if option, ok := c.requestOptions.Get(OPTION_MESSAGE_TYPE); ok {
-		if option.Header.Length == 1 {
-			c.request.Op = option.Data[0]
-		}
-	}
-
-	// Similarly, so can the ClientAddr
-	if option, ok := c.requestOptions.Get(OPTION_REQUESTED_IP); ok {
-		if option.Header.Length == 4 {
-			ip, err := BytesToFixedV4(option.Data)
-			if err == nil {
-				c.request.ClientAddr = ip
-			} else {
-				log.Printf("Failed converting byte stream to fixed v4")
-			}
-		}
-	}
-
-	return nil
 }
 
 func (c *ConnectionHandler) HandleDiscover() {

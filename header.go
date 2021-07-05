@@ -1,3 +1,6 @@
+//
+// Helpers for parsing the DHCP header payload
+//
 package main
 
 import (
@@ -6,7 +9,9 @@ import (
 	"net"
 )
 
-// Fixed-width byte array to keep track of IPv4 IPs
+//
+// Fixed-width byte array to keep track of IPv4 IPs, as they appear over the wire
+//
 type FixedV4 [4]byte
 
 func (v4 FixedV4) String() string {
@@ -29,7 +34,9 @@ func BytesToFixedV4(b []byte) (FixedV4, error) {
 	return FixedV4{b[0], b[1], b[2], b[3]}, nil
 }
 
-// Fixed-width byte array for mac addresses
+//
+// Fixed-width byte array for mac addresses, as they appear over the wire
+//
 type MacAddress [6]byte
 
 func (m MacAddress) String() string {
@@ -37,6 +44,8 @@ func (m MacAddress) String() string {
 }
 
 var Magic = [4]byte{99, 130, 83, 99}
+
+// Header of a DHCP payload
 
 type MessageHeader struct {
 	Op          byte

@@ -81,4 +81,5 @@ Verified to work with Alpine's `udhcpc` client.
 ## TODO
 
 - Persist saved leases to disk, to survive restarts
+- Support relay requests, and acting as a relay
 - More Tests

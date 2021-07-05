@@ -1,13 +1,17 @@
+//
+// Helpers for parsing the DHCP option payloads
+//
 package main
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 )
 
-// A single DHCP option
+// Represent a single DHCP option
 type Option struct {
 	Header struct {
 		Code   byte
@@ -25,7 +29,9 @@ func (o *Option) CalculateLength() error {
 	return nil
 }
 
+//
 // Easily handle lists of options. Each can only appear once.
+//
 
 type Options struct {
 	order []byte
@@ -108,8 +114,11 @@ func ParseOptions(reader *bytes.Reader) *Options {
 			log.Printf("Failed reading message option?")
 			break
 		}
-		// Used for padding to word boundaries. FIXME: padding won't be followed by length byte
+		// Used for padding to word boundaries.
 		if option.Header.Code == 0 {
+			// !!!: Padding won't be followed by length byte. Go back one.
+			// FIXME: verify this works
+			reader.Seek(-1, io.SeekCurrent)
 			continue
 		} else if option.Header.Code == OPTION_SENTINEL {
 			// The end

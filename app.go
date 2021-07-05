@@ -83,6 +83,15 @@ func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr) {
 		log.Printf("Ignoring DHCP traffic on unknown interface %v", Interface)
 		return
 	}
-	handler := NewConnectionHandler(myBuf, remote, pool)
+	if remote.Port != 68 {
+		log.Printf("Ignoring DHCP packet with source port %d rather than 68", remote.Port)
+		return
+	}
+	message, err := ParseDhcpMessage(myBuf)
+	if err != nil {
+		log.Printf("Failed parsing dhcp packet: %v", err)
+		return
+	}
+	handler := NewConnectionHandler(message, remote, pool)
 	handler.Handle()
 }
