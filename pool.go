@@ -83,3 +83,16 @@ func (p *Pool) GetNextLease(mac MacAddress, hostname string) (*Lease, error) {
 	p.insertLease(lease)
 	return lease, nil
 }
+
+func (p *Pool) ReleaseLeaseByMac(mac MacAddress) (*Lease, bool) {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if lease, ok := p.leasesByMac[mac]; ok {
+		delete(p.leasesByMac, lease.Mac)
+		delete(p.leaseByIp, lease.IP)
+		return lease, true
+	}
+
+	return nil, false
+}

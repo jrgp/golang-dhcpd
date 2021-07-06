@@ -27,6 +27,8 @@ func (r *RequestHandler) Handle() *DHCPMessage {
 		return r.HandleDiscover()
 	case DHCPREQUEST:
 		return r.HandleRequest()
+	case DHCPRELEASE:
+		return r.HandleRelease()
 	default:
 		log.Printf("Unimplemented op %v", r.header.Op)
 		return nil
@@ -75,6 +77,27 @@ func (r *RequestHandler) HandleRequest() *DHCPMessage {
 
 	// Need to send DHCPACK
 	return r.SendLeaseInfo(lease, DHCPACK)
+}
+
+func (r *RequestHandler) HandleRelease() *DHCPMessage {
+	mac := r.header.Mac
+
+	log.Printf("DHCPRELEASE from %v for %v", mac.String(), r.header.ClientAddr.String())
+	var lease *Lease
+	var ok bool
+
+	if lease, ok = r.pool.ReleaseLeaseByMac(mac); !ok {
+		log.Printf("Unrecognized lease for %v to release", mac.String())
+		return nil
+	}
+
+	// Verify IP matches what is in our lease
+	if r.header.ClientAddr != lease.IP {
+		log.Printf("Client IP does not match! %v != %v (expected)", r.header.ClientAddr, lease.IP)
+	}
+
+	// No response to a DHCPRELEASE
+	return nil
 }
 
 // Share code for DHCPOFFER and DHCPACK

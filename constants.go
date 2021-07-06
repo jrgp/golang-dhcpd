@@ -10,7 +10,7 @@ const (
 	DHCPDECLINE  = 4
 	DHCPACK      = 5 // Implemented
 	DHCPNAK      = 6 // Implemented
-	DHCPRELEASE  = 7
+	DHCPRELEASE  = 7 // Implemented
 	DHCPINFORM   = 8
 )
 

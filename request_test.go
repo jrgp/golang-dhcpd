@@ -39,12 +39,18 @@ func TestDhcpDiscover(t *testing.T) {
 
 	message, err = ParseDhcpMessage(b)
 	require.Nil(t, err)
+	require.Equal(t, byte(DHCPDISCOVER), message.Header.Op)
 
 	handler = NewRequestHandler(message, pool)
 	response = handler.Handle()
 
 	require.Equal(t, byte(DHCPOFFER), response.Header.Op)
 	require.Equal(t, IpToFixedV4(net.ParseIP("10.0.0.10")), response.Header.YourAddr)
+
+	// Pool should have a lease for this mac
+	lease, ok := pool.GetLeaseByMac(message.Header.Mac)
+	require.True(t, ok)
+	require.Equal(t, IpToFixedV4(net.ParseIP("10.0.0.10")), lease.IP)
 
 	//
 	// Request targeting the wrong IP should get back a NAK
@@ -55,6 +61,7 @@ func TestDhcpDiscover(t *testing.T) {
 
 	message, err = ParseDhcpMessage(b)
 	require.Nil(t, err)
+	require.Equal(t, byte(DHCPREQUEST), message.Header.Op)
 
 	handler = NewRequestHandler(message, pool)
 	response = handler.Handle()
@@ -70,9 +77,31 @@ func TestDhcpDiscover(t *testing.T) {
 
 	message, err = ParseDhcpMessage(b)
 	require.Nil(t, err)
+	require.Equal(t, byte(DHCPREQUEST), message.Header.Op)
 
 	handler = NewRequestHandler(message, pool)
 	response = handler.Handle()
 
 	require.Equal(t, byte(DHCPACK), response.Header.Op)
+
+	//
+	// Do a DHCPRELEASE
+	//
+	b = []byte{
+		1, 1, 6, 0, 245, 234, 140, 40, 0, 0, 0, 0, 10, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 28, 66, 180, 110, 29, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 130, 83, 99, 53, 1, 7, 54, 4, 172, 17, 0, 1, 12, 7, 117, 98, 117, 110, 116, 117, 50, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	}
+
+	message, err = ParseDhcpMessage(b)
+	require.Nil(t, err)
+	require.Equal(t, byte(DHCPRELEASE), message.Header.Op)
+
+	handler = NewRequestHandler(message, pool)
+	response = handler.Handle()
+
+	require.Nil(t, response)
+
+	// Pool should no longer have a lease for this mac
+	lease, ok = pool.GetLeaseByMac(message.Header.Mac)
+	require.False(t, ok)
+	require.Nil(t, lease)
 }

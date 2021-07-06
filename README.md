@@ -75,7 +75,7 @@ Verified to work with Alpine's `udhcpc` client.
 
 ## Implemented
 
-- Bare minimum wire protocol for DHCPDISCOVER, DHCPOFFER, DHCPREQUEST, DHCPNAK, and DHCPACK to work
+- Bare minimum wire protocol for DHCPDISCOVER, DHCPOFFER, DHCPREQUEST, DHCPNAK, DHCPACK, and DHCPRELEASE to work
 - Multiple IP Pools, sourced from configuration
 
 ## TODO

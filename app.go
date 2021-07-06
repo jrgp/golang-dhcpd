@@ -81,7 +81,7 @@ func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr) {
 
 	pool, err := a.findPoolByInterface(Interface)
 	if err != nil {
-		log.Printf("Ignoring DHCP traffic on unknown interface %v", Interface)
+		log.Printf("Ignoring DHCP traffic on unconfigured interface %v", Interface)
 		return
 	}
 
