@@ -71,7 +71,7 @@ root@ubuntu2:~#
 
 ## Status
 
-Verified to work with Alpine's `udhcpc` client.
+Verified to work with Alpine's `udhcpc` client, Ubuntu's `dhclient` client, and Windows 10.
 
 ## Implemented
 

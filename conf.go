@@ -20,6 +20,9 @@ type PoolConf struct {
 	Start string `yaml:"start"`
 	End   string `yaml:"end"`
 
+	Router []string `yaml:"routers"`
+	Dns    []string `yaml:"dns"`
+
 	LeaseTime uint32 `yaml:"leasetime"`
 }
 
@@ -37,6 +40,14 @@ func (pc PoolConf) ToPool() (*Pool, error) {
 	pool.Interface = pc.Interface
 
 	pool.Broadcast = calcBroadcast(pool.Network, pool.Netmask)
+
+	for _, ip := range pc.Router {
+		pool.Router = append(pool.Router, net.ParseIP(ip))
+	}
+
+	for _, ip := range pc.Dns {
+		pool.Dns = append(pool.Dns, net.ParseIP(ip))
+	}
 
 	log.Printf("Loaded pool %v on interface %v", pool.Name, pool.Interface)
 

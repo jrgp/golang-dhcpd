@@ -72,7 +72,7 @@ func (a *App) findPoolByInterface(Interface string) (*Pool, error) {
 	return pool, nil
 }
 
-func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr) {
+func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr, localSocket *net.UDPConn) {
 	Interface, err := a.oObToInterface(myOob)
 	if err != nil {
 		log.Printf("Failed parsing interface out of OOB: %v", err)
@@ -103,6 +103,6 @@ func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr) {
 	if response != nil {
 		// FIXME: options to sending to unicast, sending to relay, etc. Move these send functions
 		// somewhere else.
-		handler.sendMessageBroadcast(response)
+		handler.sendMessageBroadcast(response, localSocket)
 	}
 }

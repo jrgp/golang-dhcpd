@@ -125,7 +125,7 @@ func (r *RequestHandler) SendLeaseInfo(lease *Lease, op byte) *DHCPMessage {
 	if len(r.pool.Router) > 0 {
 		bytes := make([]byte, 0, 4*len(r.pool.Router))
 		for _, ip := range r.pool.Router {
-			bytes = append(bytes, ip...)
+			bytes = append(bytes, IpToFixedV4(ip).Bytes()...)
 		}
 		options.Set(OPTION_ROUTER, bytes)
 	}
@@ -134,7 +134,7 @@ func (r *RequestHandler) SendLeaseInfo(lease *Lease, op byte) *DHCPMessage {
 	if len(r.pool.Dns) > 0 {
 		bytes := make([]byte, 0, 4*len(r.pool.Dns))
 		for _, ip := range r.pool.Dns {
-			bytes = append(bytes, ip...)
+			bytes = append(bytes, IpToFixedV4(ip).Bytes()...)
 		}
 		options.Set(OPTION_DNS_SERVER, bytes)
 	}
@@ -167,7 +167,7 @@ func (r *RequestHandler) SendNAK() *DHCPMessage {
 	return &DHCPMessage{header, options}
 }
 
-func (r *RequestHandler) sendMessageBroadcast(message *DHCPMessage) {
+func (r *RequestHandler) sendMessageBroadcast(message *DHCPMessage, localSocket *net.UDPConn) {
 	buf := new(bytes.Buffer)
 
 	err := message.Encode(buf)
@@ -176,29 +176,22 @@ func (r *RequestHandler) sendMessageBroadcast(message *DHCPMessage) {
 		return
 	}
 
-	err = r.sendBroadcast(buf.Bytes())
+	err = r.sendBroadcast(buf.Bytes(), localSocket)
 	if err != nil {
 		log.Printf("Failed sending %s payload: %v", opNames[message.Header.Op], err)
 	}
 }
 
-func (r *RequestHandler) sendBroadcast(data []byte) error {
+func (r *RequestHandler) sendBroadcast(data []byte, localSocket *net.UDPConn) error {
 	// Quickly ripped from https://github.com/aler9/howto-udp-broadcast-golang
-	local, err := net.ResolveUDPAddr("udp4", ":")
-	if err != nil {
-		return fmt.Errorf("Failed resolving local: %v", err)
-	}
-	dest := r.pool.Broadcast.String() + ":68"
-	remote, err := net.ResolveUDPAddr("udp4", dest)
+	addr, err := net.ResolveUDPAddr("udp4", r.pool.Broadcast.String()+":68")
 	if err != nil {
 		return fmt.Errorf("Failed resolving remote: %v", err)
 	}
-	list, err := net.DialUDP("udp4", local, remote)
-	if err != nil {
-		return fmt.Errorf("Failed dialing: %v", err)
-	}
-	defer list.Close()
-	_, err = list.Write(data)
+
+	// Need to use our original listening socket to maintain source port 67,
+	// otherwise windows dhcp will not see our responses
+	_, err = localSocket.WriteTo(data, addr)
 	if err != nil {
 		return fmt.Errorf("Failed writing: %v", err)
 	}
