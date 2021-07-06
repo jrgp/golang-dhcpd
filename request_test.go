@@ -48,7 +48,7 @@ func TestDhcpDiscover(t *testing.T) {
 	require.Equal(t, IpToFixedV4(net.ParseIP("10.0.0.10")), response.Header.YourAddr)
 
 	// Pool should have a lease for this mac
-	lease, ok := pool.GetLeaseByMac(message.Header.Mac)
+	lease, ok := pool.TouchLeaseByMac(message.Header.Mac)
 	require.True(t, ok)
 	require.Equal(t, IpToFixedV4(net.ParseIP("10.0.0.10")), lease.IP)
 
@@ -101,7 +101,7 @@ func TestDhcpDiscover(t *testing.T) {
 	require.Nil(t, response)
 
 	// Pool should no longer have a lease for this mac
-	lease, ok = pool.GetLeaseByMac(message.Header.Mac)
+	lease, ok = pool.TouchLeaseByMac(message.Header.Mac)
 	require.False(t, ok)
 	require.Nil(t, lease)
 }

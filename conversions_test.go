@@ -15,6 +15,8 @@ func TestIpIntConversions(t *testing.T) {
 	require.Equal(t, net.ParseIP("10.0.0.2").To4(), long2ip(167772162))
 
 	require.Equal(t, net.ParseIP("10.0.0.2").To4(), long2ip(ip2long(net.ParseIP("10.0.0.2").To4())))
+
+	require.Equal(t, uint32(167772162), IpToFixedV4(net.ParseIP("10.0.0.2")).Long())
 }
 
 func TestCalcBroadcast(t *testing.T) {

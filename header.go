@@ -24,6 +24,10 @@ func (v4 FixedV4) Bytes() []byte {
 	return []byte{v4[0], v4[1], v4[2], v4[3]}
 }
 
+func (v4 FixedV4) Long() uint32 {
+	return ip2long(net.IP{v4[0], v4[1], v4[2], v4[3]})
+}
+
 func IpToFixedV4(ip net.IP) FixedV4 {
 	v4 := ip.To4()
 	return FixedV4{v4[0], v4[1], v4[2], v4[3]}
