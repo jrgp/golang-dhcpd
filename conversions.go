@@ -8,9 +8,7 @@ import (
 
 // Quickly ripped from https://www.socketloop.com/tutorials/golang-convert-ip-address-string-to-long-unsigned-32-bit-integer
 func ip2long(ip net.IP) uint32 {
-	var long uint32
-	binary.Read(bytes.NewBuffer(ip.To4()), binary.LittleEndian, &long)
-	return long
+	return binary.BigEndian.Uint32(ip.To4()[0:4])
 }
 
 func long2ip(ipIntLong uint32) net.IP {
@@ -19,7 +17,7 @@ func long2ip(ipIntLong uint32) net.IP {
 	b1 := byte(ipInt >> 16 & 0xff)
 	b2 := byte(ipInt >> 8 & 0xff)
 	b3 := byte(ipInt & 0xff)
-	return net.IP{b3, b2, b1, b0}
+	return net.IP{b0, b1, b2, b3}
 }
 
 // Quickly ripped from https://gist.github.com/chiro-hiro/2674626cebbcb5a676355b7aaac4972d
