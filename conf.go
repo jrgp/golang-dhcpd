@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"time"
 )
 
 type PoolConf struct {
@@ -32,7 +33,7 @@ func (pc PoolConf) ToPool() (*Pool, error) {
 	pool.Start = net.ParseIP(pc.Start)
 	pool.End = net.ParseIP(pc.End)
 	pool.MyIp = IpToFixedV4(net.ParseIP(pc.MyIp))
-	pool.LeaseTime = pc.LeaseTime
+	pool.LeaseTime = time.Second * time.Duration(pc.LeaseTime)
 	pool.Interface = pc.Interface
 
 	pool.Broadcast = calcBroadcast(pool.Network, pool.Netmask)

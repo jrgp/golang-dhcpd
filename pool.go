@@ -4,13 +4,18 @@ import (
 	"errors"
 	"net"
 	"sync"
+	"time"
 )
 
 type Lease struct {
 	Mac        MacAddress
 	Hostname   string
 	IP         FixedV4
-	Expiration float64
+	Expiration time.Time
+}
+
+func (l *Lease) BumpExpiry(d time.Duration) {
+	l.Expiration = time.Now().Add(d)
 }
 
 type Pool struct {
@@ -23,7 +28,7 @@ type Pool struct {
 	MyIp      FixedV4
 	Router    []net.IP
 	Dns       []net.IP
-	LeaseTime uint32
+	LeaseTime time.Duration
 	Interface string
 
 	leasesByMac map[MacAddress]*Lease
@@ -57,11 +62,12 @@ func (p *Pool) insertLease(lease *Lease) {
 	p.leaseByIp[lease.IP] = lease
 }
 
-func (p *Pool) GetLeaseByMac(mac MacAddress) (*Lease, bool) {
+func (p *Pool) TouchLeaseByMac(mac MacAddress) (*Lease, bool) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
 	if lease, ok := p.leasesByMac[mac]; ok {
+		lease.BumpExpiry(p.LeaseTime)
 		return lease, true
 	}
 	return nil, false
@@ -80,6 +86,7 @@ func (p *Pool) GetNextLease(mac MacAddress, hostname string) (*Lease, error) {
 		Hostname: hostname,
 		Mac:      mac,
 	}
+	lease.BumpExpiry(p.LeaseTime)
 	p.insertLease(lease)
 	return lease, nil
 }

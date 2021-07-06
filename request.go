@@ -44,7 +44,7 @@ func (r *RequestHandler) HandleDiscover() *DHCPMessage {
 
 	mac := r.header.Mac
 	log.Printf("DHCPDISCOVER from %v (%s)", mac.String(), hostname)
-	if lease, ok := r.pool.GetLeaseByMac(mac); ok {
+	if lease, ok := r.pool.TouchLeaseByMac(mac); ok {
 		log.Printf("Have old lease for %v: %v", mac.String(), lease.IP.String())
 		return r.SendLeaseInfo(lease, DHCPOFFER)
 	}
@@ -63,7 +63,7 @@ func (r *RequestHandler) HandleRequest() *DHCPMessage {
 	log.Printf("DHCPREQUEST from %v for %v", mac.String(), r.header.ClientAddr.String())
 	var lease *Lease
 	var ok bool
-	if lease, ok = r.pool.GetLeaseByMac(mac); !ok {
+	if lease, ok = r.pool.TouchLeaseByMac(mac); !ok {
 		log.Printf("Unrecognized lease for %v", mac.String())
 		return r.SendNAK()
 
@@ -140,7 +140,7 @@ func (r *RequestHandler) SendLeaseInfo(lease *Lease, op byte) *DHCPMessage {
 	}
 
 	// Lease time
-	options.Set(OPTION_LEASE_TIME, long2bytes(r.pool.LeaseTime))
+	options.Set(OPTION_LEASE_TIME, long2bytes(uint32(r.pool.LeaseTime.Seconds())))
 
 	// DHCP server
 	options.Set(OPTION_SERVER_ID, r.pool.MyIp.Bytes())
