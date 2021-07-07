@@ -17,7 +17,7 @@ func TestParseDhcpMessage(t *testing.T) {
 
 	require.Equal(t, "0:1c:42:b4:6e:1d", message.Header.Mac.String())
 	require.Equal(t, byte(DHCPREQUEST), message.Header.Op)
-	require.Equal(t, uint32(818544494), message.Header.Identifier)
+	require.Equal(t, uint32(0x6effc930), message.Header.Identifier)
 	require.Equal(t, IpToFixedV4(net.ParseIP("172.17.0.100")), message.Header.ClientAddr)
 
 	opt, ok := message.Options.Get(OPTION_MESSAGE_TYPE)

@@ -53,7 +53,7 @@ func (m MacAddress) String() string {
 // Header of a DHCP payload
 //
 
-var Magic = [4]byte{99, 130, 83, 99}
+var Magic uint32 = 0x63825363
 
 type MessageHeader struct {
 	Op          byte
@@ -71,7 +71,7 @@ type MessageHeader struct {
 	MacPadding  [10]byte
 	Hostname    [64]byte
 	Filename    [128]byte
-	Magic       [4]byte // FIXME: convert these 4 bytes to an int
+	Magic       uint32
 }
 
 func (h *MessageHeader) Encode(buf *bytes.Buffer) error {
@@ -79,12 +79,12 @@ func (h *MessageHeader) Encode(buf *bytes.Buffer) error {
 	h.Magic = Magic
 	h.HType = 1
 	h.HLen = 6
-	return binary.Write(buf, binary.LittleEndian, h)
+	return binary.Write(buf, binary.BigEndian, h)
 }
 
 func ParseMessageHeader(reader *bytes.Reader) (*MessageHeader, error) {
 	header := &MessageHeader{}
-	err := binary.Read(reader, binary.LittleEndian, header)
+	err := binary.Read(reader, binary.BigEndian, header)
 	if err != nil {
 		return nil, fmt.Errorf("Failed unpacking header into struct: %v", err)
 	}
