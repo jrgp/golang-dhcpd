@@ -30,3 +30,9 @@ func TestMessageParseEncode(t *testing.T) {
 
 	require.Equal(t, b[:240], encoded)
 }
+
+func TestMacEncoding(t *testing.T) {
+	encoded := StrToMac("0:1c:42:b4:6e:1d")
+	require.Equal(t, "0:1c:42:b4:6e:1d", encoded.String())
+	require.Equal(t, MacAddress{0, 0x1c, 0x42, 0xb4, 0x6e, 0x1d}, encoded)
+}

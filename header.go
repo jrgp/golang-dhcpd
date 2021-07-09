@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 )
 
 //
@@ -47,6 +49,33 @@ type MacAddress [6]byte
 
 func (m MacAddress) String() string {
 	return fmt.Sprintf("%x:%x:%x:%x:%x:%x", m[0], m[1], m[2], m[3], m[4], m[5])
+}
+
+func StrToMac(str string) MacAddress {
+	var m MacAddress
+
+	parts := strings.Split(str, ":")
+	if len(parts) != 6 {
+		return m
+	}
+
+	parsePart := func(s string) byte {
+		if n, err := strconv.ParseUint(s, 16, 8); err == nil {
+			return byte(n)
+		}
+		return 0
+	}
+
+	m = MacAddress{
+		parsePart(parts[0]),
+		parsePart(parts[1]),
+		parsePart(parts[2]),
+		parsePart(parts[3]),
+		parsePart(parts[4]),
+		parsePart(parts[5]),
+	}
+
+	return m
 }
 
 //

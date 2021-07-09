@@ -1,10 +1,11 @@
 package main
 
 import (
+	"errors"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -29,8 +30,13 @@ type PoolConf struct {
 func (pc PoolConf) ToPool() (*Pool, error) {
 	pool := NewPool()
 
-	// FIXME: input validation for all of these
 	pool.Name = pc.Name
+
+	if strings.Contains(pool.Name, "/") {
+		return nil, errors.New("Pool names cannot contain slashes as they are used in file names")
+	}
+
+	// FIXME: input validation for all of these
 	pool.Network = net.ParseIP(pc.Network)
 	pool.Netmask = net.ParseIP(pc.Netmask)
 	pool.Start = net.ParseIP(pc.Start)
@@ -49,8 +55,6 @@ func (pc PoolConf) ToPool() (*Pool, error) {
 		pool.Dns = append(pool.Dns, net.ParseIP(ip))
 	}
 
-	log.Printf("Loaded pool %v on interface %v", pool.Name, pool.Interface)
-
 	return pool, nil
 }
 
@@ -61,7 +65,8 @@ type HostConf struct {
 }
 
 type Conf struct {
-	Pools []PoolConf `yaml:"pools"`
+	Pools    []PoolConf `yaml:"pools"`
+	Leasedir string     `yaml:"leasedir"`
 }
 
 func ParseConf(path string) (*Conf, error) {

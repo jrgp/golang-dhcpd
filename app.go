@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"path/filepath"
 )
 
 type App struct {
@@ -26,6 +27,19 @@ func (a *App) InitPools(conf *Conf) error {
 		pool, err := pc.ToPool()
 		if err != nil {
 			return err
+		}
+
+		pool.Persistence = NewFilePersistence(filepath.Join(conf.Leasedir, pool.Name+".json"))
+
+		count, err := pool.LoadLeases()
+		if err != nil {
+			return err
+		}
+
+		if count == 1 {
+			log.Printf("Loaded pool %v on interface %v with %v lease", pool.Name, pool.Interface, count)
+		} else {
+			log.Printf("Loaded pool %v on interface %v with %v leases", pool.Name, pool.Interface, count)
 		}
 
 		err = a.insertPool(pool)

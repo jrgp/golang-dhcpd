@@ -34,6 +34,8 @@ pools:
     myip: 172.17.0.1
     routers: [ 172.17.0.1 ]
     dns: [ 1.1.1.1, 8.8.8.8 ]
+
+leasedir: /var/lib/godhcpd
 ```
 
 ### Example command output on VM acting as DHCP server
@@ -80,7 +82,7 @@ Verified to work with Alpine's `udhcpc` client, Ubuntu's `dhclient` client, and 
 
 ## TODO
 
-- Persist saved leases to disk, to survive restarts
 - Support relay requests, and acting as a relay
 - Support arbitrary options
+- Support hosts in config with hardcoded IPs, based on mac address
 - More Tests

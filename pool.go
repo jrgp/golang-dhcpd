@@ -25,17 +25,18 @@ func (l *Lease) Expired() bool {
 }
 
 type Pool struct {
-	Name      string
-	Network   net.IP
-	Netmask   net.IP
-	Broadcast net.IP
-	Start     net.IP
-	End       net.IP
-	MyIp      FixedV4
-	Router    []net.IP
-	Dns       []net.IP
-	LeaseTime time.Duration
-	Interface string
+	Name        string
+	Network     net.IP
+	Netmask     net.IP
+	Broadcast   net.IP
+	Start       net.IP
+	End         net.IP
+	MyIp        FixedV4
+	Router      []net.IP
+	Dns         []net.IP
+	LeaseTime   time.Duration
+	Interface   string
+	Persistence Persistence
 
 	leasesByMac map[MacAddress]*Lease
 	leaseByIp   map[uint32]*Lease
@@ -43,10 +44,9 @@ type Pool struct {
 }
 
 func NewPool() *Pool {
-	return &Pool{
-		leasesByMac: map[MacAddress]*Lease{},
-		leaseByIp:   map[uint32]*Lease{},
-	}
+	p := &Pool{}
+	p.clearLeases()
+	return p
 }
 
 // Hacky, terrible, naive impl. I want an ordered int set!
@@ -80,6 +80,11 @@ func (p *Pool) getFreeIp() (FixedV4, error) {
 	return FixedV4{}, ErrNoIps
 }
 
+func (p *Pool) clearLeases() {
+	p.leasesByMac = map[MacAddress]*Lease{}
+	p.leaseByIp = map[uint32]*Lease{}
+}
+
 func (p *Pool) insertLease(lease *Lease) {
 	p.leasesByMac[lease.Mac] = lease
 	p.leaseByIp[lease.IP.Long()] = lease
@@ -96,6 +101,7 @@ func (p *Pool) TouchLeaseByMac(mac MacAddress) (*Lease, bool) {
 
 	if lease, ok := p.leasesByMac[mac]; ok {
 		lease.BumpExpiry(p.LeaseTime)
+		p.persistLeases()
 		return lease, true
 	}
 	return nil, false
@@ -116,6 +122,7 @@ func (p *Pool) GetNextLease(mac MacAddress, hostname string) (*Lease, error) {
 	}
 	lease.BumpExpiry(p.LeaseTime)
 	p.insertLease(lease)
+	p.persistLeases()
 	return lease, nil
 }
 
@@ -125,8 +132,37 @@ func (p *Pool) ReleaseLeaseByMac(mac MacAddress) (*Lease, bool) {
 
 	if lease, ok := p.leasesByMac[mac]; ok {
 		p.deleteLease(lease)
+		p.persistLeases()
 		return lease, true
 	}
 
 	return nil, false
+}
+
+func (p *Pool) LoadLeases() (int, error) {
+	if p.Persistence == nil {
+		return 0, nil
+	}
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	leases, err := p.Persistence.LoadLeases()
+	if err != nil {
+		return 0, err
+	}
+
+	p.clearLeases()
+
+	for _, lease := range leases {
+		p.insertLease(lease)
+	}
+	return len(leases), nil
+}
+
+func (p *Pool) persistLeases() error {
+	if p.Persistence == nil {
+		return nil
+	}
+
+	return p.Persistence.PersistLeases(p.leaseByIp)
 }
