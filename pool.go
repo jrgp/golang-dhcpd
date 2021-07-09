@@ -39,7 +39,7 @@ type Pool struct {
 	Persistence Persistence
 
 	leasesByMac map[MacAddress]*Lease
-	leaseByIp   map[uint32]*Lease
+	leaseByIp   map[FixedV4]*Lease
 	m           sync.RWMutex
 }
 
@@ -55,14 +55,14 @@ func (p *Pool) getFreeIp() (FixedV4, error) {
 	// Try to find the next free IP within our range, while keeping
 	// track of the first expired lease we found, in case we have no
 	// otherwise free IPs
-	start := ip2long(p.Start)
-	end := ip2long(p.End)
+	start := IpToFixedV4(p.Start)
+	end := IpToFixedV4(p.End)
 
 	var foundExpired *Lease = nil
 
 	for ipLong := start; ipLong <= end; ipLong++ {
 		if lease, ok := p.leaseByIp[ipLong]; !ok {
-			return IpToFixedV4(long2ip(ipLong)), nil
+			return ipLong, nil
 		} else {
 			if foundExpired == nil && lease.Expired() {
 				foundExpired = lease
@@ -77,22 +77,22 @@ func (p *Pool) getFreeIp() (FixedV4, error) {
 		return foundExpired.IP, nil
 	}
 
-	return FixedV4{}, ErrNoIps
+	return 0, ErrNoIps
 }
 
 func (p *Pool) clearLeases() {
 	p.leasesByMac = map[MacAddress]*Lease{}
-	p.leaseByIp = map[uint32]*Lease{}
+	p.leaseByIp = map[FixedV4]*Lease{}
 }
 
 func (p *Pool) insertLease(lease *Lease) {
 	p.leasesByMac[lease.Mac] = lease
-	p.leaseByIp[lease.IP.Long()] = lease
+	p.leaseByIp[lease.IP] = lease
 }
 
 func (p *Pool) deleteLease(lease *Lease) {
 	delete(p.leasesByMac, lease.Mac)
-	delete(p.leaseByIp, lease.IP.Long())
+	delete(p.leaseByIp, lease.IP)
 }
 
 func (p *Pool) TouchLeaseByMac(mac MacAddress) (*Lease, bool) {

@@ -14,32 +14,33 @@ import (
 )
 
 //
-// Fixed-width byte array to keep track of IPv4 IPs, as they appear over the wire
+// Fixed-width big-endian integer to keep track of IPv4 IPs, as they appear over the wire
 //
-type FixedV4 [4]byte
+type FixedV4 uint32
 
 func (v4 FixedV4) String() string {
-	return fmt.Sprintf("%d.%d.%d.%d", v4[0], v4[1], v4[2], v4[3])
+	ip := long2ip(uint32(v4))
+	return fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
 }
 
 func (v4 FixedV4) Bytes() []byte {
-	return []byte{v4[0], v4[1], v4[2], v4[3]}
+	return long2bytes(uint32(v4))
 }
 
 func (v4 FixedV4) Long() uint32 {
-	return ip2long(net.IP{v4[0], v4[1], v4[2], v4[3]})
+	return uint32(v4)
 }
 
 func IpToFixedV4(ip net.IP) FixedV4 {
-	v4 := ip.To4()
-	return FixedV4{v4[0], v4[1], v4[2], v4[3]}
+	b := ip.To4()
+	return FixedV4(binary.BigEndian.Uint32(b[0:4]))
 }
 
 func BytesToFixedV4(b []byte) (FixedV4, error) {
 	if len(b) != 4 {
-		return FixedV4{}, errors.New("Incorrect length")
+		return 0, errors.New("Incorrect length")
 	}
-	return FixedV4{b[0], b[1], b[2], b[3]}, nil
+	return FixedV4(binary.BigEndian.Uint32(b[0:4])), nil
 }
 
 //
