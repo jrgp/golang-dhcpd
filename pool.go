@@ -35,7 +35,6 @@ type Pool struct {
 	Router      []net.IP
 	Dns         []net.IP
 	LeaseTime   time.Duration
-	Interface   string
 	Persistence Persistence
 
 	leasesByMac map[MacAddress]*Lease

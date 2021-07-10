@@ -29,10 +29,10 @@ func main() {
 
 	app := NewApp()
 
-	err = app.InitPools(conf)
+	err = app.InitConf(conf)
 
 	if err != nil {
-		log.Fatalf("Failed initializing pools: %v", err)
+		log.Fatalf("Failed initializing: %v", err)
 	}
 
 	addr := net.UDPAddr{

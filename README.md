@@ -19,13 +19,11 @@ I wanted to make a small and safe Go solution, as well as to learn the DHCP prot
 
 ### Configuration
 
-We use yaml. Multiple pools can be defined this way, with one per interface as needed. DHCP traffic to interfaces
-not listed will be ignored.
+We use yaml. Multiple pools can be defined this way. DHCP traffic to interfaces not listed will be ignored.
 
 ```yaml
 pools:
   - name: vm testing
-    interface: eth1
     network: 172.17.0.0
     mask: 255.255.255.0
     start: 172.17.0.100
@@ -35,6 +33,7 @@ pools:
     routers: [ 172.17.0.1 ]
     dns: [ 1.1.1.1, 8.8.8.8 ]
 
+interfaces: [ eth1 ]
 leasedir: /var/lib/godhcpd
 ```
 

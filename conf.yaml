@@ -1,6 +1,5 @@
 pools:
   - name: vm testing
-    interface: eth1
     network: 172.17.0.0
     mask: 255.255.255.0
     start: 172.17.0.100
@@ -11,6 +10,7 @@ pools:
     dns: [ 1.1.1.1, 8.8.8.8 ]
 
 leasedir: .
+interfaces: [ eth1 ]
 
 # The following makes more sense
 #leasedir: /var/lib/godhcpd

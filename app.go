@@ -10,18 +10,26 @@ import (
 )
 
 type App struct {
-	pools          []*Pool
-	interface2Pool map[string]*Pool
+	ipnet2pool map[HashableIpNet]*Pool
+	interfaces map[string]struct{}
 }
 
 func NewApp() *App {
 	return &App{
-		pools:          []*Pool{},
-		interface2Pool: map[string]*Pool{},
+		ipnet2pool: map[HashableIpNet]*Pool{},
+		interfaces: map[string]struct{}{},
 	}
 }
 
-func (a *App) InitPools(conf *Conf) error {
+func (a *App) InitConf(conf *Conf) error {
+
+	for _, iface := range conf.Interfaces {
+		a.interfaces[iface] = struct{}{}
+	}
+
+	if len(a.interfaces) == 0 {
+		return errors.New("No interfaces configured")
+	}
 
 	for _, pc := range conf.Pools {
 		pool, err := pc.ToPool()
@@ -37,9 +45,9 @@ func (a *App) InitPools(conf *Conf) error {
 		}
 
 		if count == 1 {
-			log.Printf("Loaded pool %v on interface %v with %v lease", pool.Name, pool.Interface, count)
+			log.Printf("Loaded pool %v with %v lease", pool.Name, count)
 		} else {
-			log.Printf("Loaded pool %v on interface %v with %v leases", pool.Name, pool.Interface, count)
+			log.Printf("Loaded pool %v with %v leases", pool.Name, count)
 		}
 
 		err = a.insertPool(pool)
@@ -52,50 +60,78 @@ func (a *App) InitPools(conf *Conf) error {
 }
 
 func (a *App) insertPool(p *Pool) error {
-	if _, ok := a.interface2Pool[p.Interface]; ok {
-		return errors.New("Interfaces may be used by only one pool")
+	ipnet := HashableIpNet{
+		IP:   IpToFixedV4(p.Network),
+		Mask: IpToFixedV4(p.Netmask),
 	}
 
-	a.interface2Pool[p.Interface] = p
-	a.pools = append(a.pools, p)
+	if _, ok := a.ipnet2pool[ipnet]; ok {
+		return errors.New("Duplicate IP network between pools")
+	}
+
+	a.ipnet2pool[ipnet] = p
 
 	return nil
 }
 
-func (a *App) oObToInterface(oob []byte) (string, error) {
+func (a *App) oObToInterface(oob []byte) (*net.Interface, error) {
 	cm := &ipv4.ControlMessage{}
 
 	if err := cm.Parse(oob); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	Interface, err := net.InterfaceByIndex(cm.IfIndex)
+	iface, err := net.InterfaceByIndex(cm.IfIndex)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return Interface.Name, nil
+	return iface, nil
 }
 
-func (a *App) findPoolByInterface(Interface string) (*Pool, error) {
-	pool, ok := a.interface2Pool[Interface]
-	if !ok {
-		return nil, errors.New("Unconfigured")
+func (a *App) findPoolByInterface(iface *net.Interface) (*Pool, error) {
+	addrs, err := iface.Addrs()
+
+	if err != nil {
+		return nil, err
 	}
-	return pool, nil
+
+	for _, addr := range addrs {
+		// FIXME: should we verify addr.Network() is first "ip+net" ?
+		_, ipnet, err := net.ParseCIDR(addr.String())
+		if err != nil {
+			continue
+		}
+
+		hipnet, err := IpNet2HashableIpNet(ipnet)
+		if err != nil {
+			continue
+		}
+
+		if pool, ok := a.ipnet2pool[hipnet]; ok {
+			return pool, nil
+		}
+	}
+
+	return nil, errors.New("Not found")
 }
 
 func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr, localSocket *net.UDPConn) {
-	Interface, err := a.oObToInterface(myOob)
+	iface, err := a.oObToInterface(myOob)
 	if err != nil {
 		log.Printf("Failed parsing interface out of OOB: %v", err)
 		return
 	}
 
-	pool, err := a.findPoolByInterface(Interface)
+	if _, ok := a.interfaces[iface.Name]; !ok {
+		log.Printf("Ignoring DHCP traffic on unconfigured interface %v", iface.Name)
+		return
+	}
+
+	pool, err := a.findPoolByInterface(iface)
 	if err != nil {
-		log.Printf("Ignoring DHCP traffic on unconfigured interface %v", Interface)
+		log.Printf("Can't find pool based on IPs bound to %v", iface.Name)
 		return
 	}
 

@@ -10,9 +10,8 @@ import (
 )
 
 type PoolConf struct {
-	Name      string `yaml:"name"`
-	Interface string `yaml:"interface"`
-	MyIp      string `yaml:"myip"`
+	Name string `yaml:"name"`
+	MyIp string `yaml:"myip"`
 
 	Network string `yaml:"network"`
 	Subnet  string `yaml:"subnet"`
@@ -43,7 +42,6 @@ func (pc PoolConf) ToPool() (*Pool, error) {
 	pool.End = net.ParseIP(pc.End)
 	pool.MyIp = IpToFixedV4(net.ParseIP(pc.MyIp))
 	pool.LeaseTime = time.Second * time.Duration(pc.LeaseTime)
-	pool.Interface = pc.Interface
 
 	pool.Broadcast = calcBroadcast(pool.Network, pool.Netmask)
 
@@ -65,8 +63,9 @@ type HostConf struct {
 }
 
 type Conf struct {
-	Pools    []PoolConf `yaml:"pools"`
-	Leasedir string     `yaml:"leasedir"`
+	Pools      []PoolConf `yaml:"pools"`
+	Leasedir   string     `yaml:"leasedir"`
+	Interfaces []string   `yaml:"interfaces`
 }
 
 func ParseConf(path string) (*Conf, error) {
