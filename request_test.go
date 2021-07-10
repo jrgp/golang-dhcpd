@@ -28,7 +28,7 @@ func TestDhcpDiscover(t *testing.T) {
 	handler := NewRequestHandler(message, pool)
 	response := handler.Handle()
 
-	require.Equal(t, byte(DHCPNAK), response.Header.Op)
+	require.Equal(t, byte(DHCPNAK), response.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	//
 	// DISCOVER. Should get back a lease.
@@ -39,12 +39,12 @@ func TestDhcpDiscover(t *testing.T) {
 
 	message, err = ParseDhcpMessage(b)
 	require.Nil(t, err)
-	require.Equal(t, byte(DHCPDISCOVER), message.Header.Op)
+	require.Equal(t, byte(DHCPDISCOVER), message.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	handler = NewRequestHandler(message, pool)
 	response = handler.Handle()
 
-	require.Equal(t, byte(DHCPOFFER), response.Header.Op)
+	require.Equal(t, byte(DHCPOFFER), response.Options.GetByte(OPTION_MESSAGE_TYPE))
 	require.Equal(t, IpToFixedV4(net.ParseIP("10.0.0.10")), response.Header.YourAddr)
 
 	// Pool should have a lease for this mac
@@ -61,12 +61,12 @@ func TestDhcpDiscover(t *testing.T) {
 
 	message, err = ParseDhcpMessage(b)
 	require.Nil(t, err)
-	require.Equal(t, byte(DHCPREQUEST), message.Header.Op)
+	require.Equal(t, byte(DHCPREQUEST), message.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	handler = NewRequestHandler(message, pool)
 	response = handler.Handle()
 
-	require.Equal(t, byte(DHCPNAK), response.Header.Op)
+	require.Equal(t, byte(DHCPNAK), response.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	//
 	// A request should now get back an ACK
@@ -77,12 +77,12 @@ func TestDhcpDiscover(t *testing.T) {
 
 	message, err = ParseDhcpMessage(b)
 	require.Nil(t, err)
-	require.Equal(t, byte(DHCPREQUEST), message.Header.Op)
+	require.Equal(t, byte(DHCPREQUEST), message.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	handler = NewRequestHandler(message, pool)
 	response = handler.Handle()
 
-	require.Equal(t, byte(DHCPACK), response.Header.Op)
+	require.Equal(t, byte(DHCPACK), response.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	//
 	// Do a DHCPRELEASE
@@ -93,7 +93,7 @@ func TestDhcpDiscover(t *testing.T) {
 
 	message, err = ParseDhcpMessage(b)
 	require.Nil(t, err)
-	require.Equal(t, byte(DHCPRELEASE), message.Header.Op)
+	require.Equal(t, byte(DHCPRELEASE), message.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	handler = NewRequestHandler(message, pool)
 	response = handler.Handle()

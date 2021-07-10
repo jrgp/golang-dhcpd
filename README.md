@@ -15,7 +15,7 @@ I wanted to make a small and safe Go solution, as well as to learn the DHCP prot
 2. go build
 3. Configure conf.yaml
 3. Run with permissions needed to listen on port 67 (eg run as root or use linux capabilities), as follows
-4. Run a separate VM on the same bridge/vlan as a dhcp client. This is tested against Alpine's udhcpc and ubuntu's dhclient
+4. Run a separate VM on the same bridge/vlan as a dhcp client
 
 ### Configuration
 
@@ -72,16 +72,18 @@ root@ubuntu2:~#
 
 ## Status
 
-Verified to work with Alpine's `udhcpc` client, Ubuntu's `dhclient` client, and Windows 10.
+- Verified to work with Alpine's `udhcpc` client, Ubuntu's `dhclient` client, and Windows 10.
+- Relay requests verified to work with isc-dhcp-relay.
 
 ## Implemented
 
 - Bare minimum wire protocol for DHCPDISCOVER, DHCPOFFER, DHCPREQUEST, DHCPNAK, DHCPACK, and DHCPRELEASE to work
-- Multiple IP Pools, sourced from configuration
+- Supports relayed requests
+- Supports multiple IP Pools, sourced from configuration
 
 ## TODO
 
-- Support relay requests, and acting as a relay
+- Support acting as a relay
 - Support arbitrary options
 - Support hosts in config with hardcoded IPs, based on mac address
 - More Tests

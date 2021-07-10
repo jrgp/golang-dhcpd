@@ -49,9 +49,25 @@ func (o *Options) GetAll() map[byte]Option {
 	return o.data
 }
 
+func (o *Options) Dump() {
+	for _, key := range o.order {
+		option := o.data[key]
+		log.Printf("%v = %v (%+v)", key, string(""), option.Data)
+	}
+}
+
 func (o *Options) Get(code byte) (Option, bool) {
 	option, ok := o.data[code]
 	return option, ok
+}
+
+func (o *Options) GetByte(code byte) byte {
+	if option, ok := o.data[code]; ok {
+		if len(option.Data) == 1 {
+			return option.Data[0]
+		}
+	}
+	return 0
 }
 
 func (o *Options) Set(code byte, data []byte) {

@@ -90,6 +90,8 @@ func (a *App) oObToInterface(oob []byte) (*net.Interface, error) {
 	return iface, nil
 }
 
+// For non-relayed requests: find a pool by comparing nets to local nic
+// IPs
 func (a *App) findPoolByInterface(iface *net.Interface) (*Pool, error) {
 	addrs, err := iface.Addrs()
 
@@ -117,7 +119,32 @@ func (a *App) findPoolByInterface(iface *net.Interface) (*Pool, error) {
 	return nil, errors.New("Not found")
 }
 
+// For relayed requests: find a pool by comparing giaddr to configured
+// pool nets
+func (a *App) findPoolbyGiaddr(giaddr FixedV4) (*Pool, error) {
+	for _, pool := range a.ipnet2pool {
+		ipnet := &net.IPNet{
+			IP:   pool.Network,
+			Mask: net.IPMask([]byte(pool.Netmask)),
+		}
+		if ipnet.Contains(giaddr.NetIp()) {
+			return pool, nil
+		}
+	}
+
+	return nil, errors.New("Not found")
+}
+
 func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr, localSocket *net.UDPConn) {
+	// Sanity remote port check
+	if remote.Port != 67 && remote.Port != 68 {
+		log.Printf("Ignoring DHCP packet with source port %d rather than 67 or 68", remote.Port)
+		return
+	}
+
+	var err error
+
+	// Grab iface and verify we're configured to work on it
 	iface, err := a.oObToInterface(myOob)
 	if err != nil {
 		log.Printf("Failed parsing interface out of OOB: %v", err)
@@ -129,21 +156,29 @@ func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr, localSoc
 		return
 	}
 
-	pool, err := a.findPoolByInterface(iface)
-	if err != nil {
-		log.Printf("Can't find pool based on IPs bound to %v", iface.Name)
-		return
-	}
-
-	if remote.Port != 68 {
-		log.Printf("Ignoring DHCP packet with source port %d rather than 68", remote.Port)
-		return
-	}
-
+	// Parse entire dhcp message
 	message, err := ParseDhcpMessage(myBuf)
 	if err != nil {
 		log.Printf("Failed parsing dhcp packet: %v", err)
 		return
+	}
+
+	var pool *Pool
+
+	// Relayed request. Find pool based on giaddr
+	if !message.Header.GatewayAddr.Empty() {
+		pool, err = a.findPoolbyGiaddr(message.Header.GatewayAddr)
+		if err != nil {
+			log.Printf("Can't find pool based on IPs bound to %v", iface.Name)
+			return
+		}
+
+	} else {
+		pool, err = a.findPoolByInterface(iface)
+		if err != nil {
+			log.Printf("Can't find pool based on IPs bound to %v", iface.Name)
+			return
+		}
 	}
 
 	handler := NewRequestHandler(message, pool)
@@ -151,8 +186,11 @@ func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr, localSoc
 	response := handler.Handle()
 
 	if response != nil {
-		// FIXME: options to sending to unicast, sending to relay, etc. Move these send functions
-		// somewhere else.
-		handler.sendMessageBroadcast(response, localSocket)
+		// In the case of a relayed request, send the response unicast to the relaying server
+		if !message.Header.GatewayAddr.Empty() {
+			handler.sendMessageRelayed(response, message.Header.GatewayAddr, localSocket)
+		} else {
+			handler.sendMessageBroadcast(response, localSocket)
+		}
 	}
 }

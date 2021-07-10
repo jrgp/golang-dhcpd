@@ -45,6 +45,14 @@ func (v4 FixedV4) Long() uint32 {
 	return uint32(v4)
 }
 
+func (v4 FixedV4) NetIp() net.IP {
+	return long2ip(uint32(v4))
+}
+
+func (v4 FixedV4) Empty() bool {
+	return uint32(v4) == 0
+}
+
 func IpToFixedV4(ip net.IP) FixedV4 {
 	b := ip.To4()
 	return FixedV4(binary.BigEndian.Uint32(b[0:4]))

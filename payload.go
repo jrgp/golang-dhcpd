@@ -47,14 +47,8 @@ func ParseDhcpMessage(buf []byte) (*DHCPMessage, error) {
 	// Parse arbitrary options
 	options := ParseOptions(reader)
 
-	// Confusingly, the Op type can be overridden using an option
-	if option, ok := options.Get(OPTION_MESSAGE_TYPE); ok {
-		if option.Header.Length == 1 {
-			header.Op = option.Data[0]
-		}
-	}
-
-	// Similarly, so can the ClientAddr
+	// ClientAddr overriden by option?
+	// FIXME: verify if this logic is actually needed
 	if option, ok := options.Get(OPTION_REQUESTED_IP); ok {
 		if option.Header.Length == 4 {
 			ip, err := BytesToFixedV4(option.Data)

@@ -22,7 +22,7 @@ func NewRequestHandler(message *DHCPMessage, pool *Pool) *RequestHandler {
 }
 
 func (r *RequestHandler) Handle() *DHCPMessage {
-	switch r.header.Op {
+	switch r.options.GetByte(OPTION_MESSAGE_TYPE) {
 	case DHCPDISCOVER:
 		return r.HandleDiscover()
 	case DHCPREQUEST:
@@ -66,7 +66,6 @@ func (r *RequestHandler) HandleRequest() *DHCPMessage {
 	if lease, ok = r.pool.TouchLeaseByMac(mac); !ok {
 		log.Printf("Unrecognized lease for %v", mac.String())
 		return r.SendNAK()
-
 	}
 
 	// Verify IP matches what is in our lease
@@ -103,7 +102,7 @@ func (r *RequestHandler) HandleRelease() *DHCPMessage {
 // Share code for DHCPOFFER and DHCPACK
 func (r *RequestHandler) SendLeaseInfo(lease *Lease, op byte) *DHCPMessage {
 	header := &MessageHeader{
-		Op:         op,
+		Op:         BOOT_REPLY,
 		Hops:       0,
 		Identifier: r.header.Identifier,
 		YourAddr:   lease.IP,
@@ -150,22 +149,26 @@ func (r *RequestHandler) SendLeaseInfo(lease *Lease, op byte) *DHCPMessage {
 
 func (r *RequestHandler) SendNAK() *DHCPMessage {
 	header := &MessageHeader{
-		Op:         DHCPNAK,
+		Op:         BOOT_REPLY,
 		Hops:       0,
 		Identifier: r.header.Identifier,
 		ServerAddr: r.pool.MyIp,
 		Mac:        r.header.Mac,
 	}
 
-	log.Printf("Sending %s to %v", opNames[header.Op], r.header.Mac.String())
+	log.Printf("Sending %s to %v", opNames[DHCPNAK], r.header.Mac.String())
 
 	options := NewOptions()
-	options.Set(OPTION_MESSAGE_TYPE, []byte{header.Op})
+	options.Set(OPTION_MESSAGE_TYPE, []byte{DHCPNAK})
 
 	// FIXME: we likely need more options
 
 	return &DHCPMessage{header, options}
 }
+
+//
+// Send a dhcp response message to broadcast address
+//
 
 func (r *RequestHandler) sendMessageBroadcast(message *DHCPMessage, localSocket *net.UDPConn) {
 	buf := new(bytes.Buffer)
@@ -178,13 +181,55 @@ func (r *RequestHandler) sendMessageBroadcast(message *DHCPMessage, localSocket 
 
 	err = r.sendBroadcast(buf.Bytes(), localSocket)
 	if err != nil {
-		log.Printf("Failed sending %s payload: %v", opNames[message.Header.Op], err)
+		log.Printf("Failed sending %s payload: %v", opNames[message.Options.GetByte(OPTION_MESSAGE_TYPE)], err)
 	}
 }
 
 func (r *RequestHandler) sendBroadcast(data []byte, localSocket *net.UDPConn) error {
 	// Quickly ripped from https://github.com/aler9/howto-udp-broadcast-golang
 	addr, err := net.ResolveUDPAddr("udp4", r.pool.Broadcast.String()+":68")
+	if err != nil {
+		return fmt.Errorf("Failed resolving remote: %v", err)
+	}
+
+	// Need to use our original listening socket to maintain source port 67,
+	// otherwise windows dhcp will not see our responses
+	_, err = localSocket.WriteTo(data, addr)
+	if err != nil {
+		return fmt.Errorf("Failed writing: %v", err)
+	}
+	return nil
+}
+
+//
+// Send a dhcp response message to a unicast address
+//
+
+func (r *RequestHandler) sendMessageRelayed(message *DHCPMessage, dest FixedV4, localSocket *net.UDPConn) {
+	// FIXME: maybe more/fixed header mangling?
+	message.Header.GatewayAddr = r.header.GatewayAddr
+	message.Header.Flags = r.header.Flags
+	r.sendMessageUnicast(message, dest, localSocket)
+}
+
+func (r *RequestHandler) sendMessageUnicast(message *DHCPMessage, dest FixedV4, localSocket *net.UDPConn) {
+	buf := new(bytes.Buffer)
+
+	err := message.Encode(buf)
+	if err != nil {
+		log.Printf("Failed encoding payload: %v", err)
+		return
+	}
+
+	err = r.sendUnicast(buf.Bytes(), dest, localSocket)
+	if err != nil {
+		log.Printf("Failed sending %s unicast payload: %v", opNames[message.Options.GetByte(OPTION_MESSAGE_TYPE)], err)
+	}
+}
+
+func (r *RequestHandler) sendUnicast(data []byte, dest FixedV4, localSocket *net.UDPConn) error {
+	// Quickly ripped from https://github.com/aler9/howto-udp-broadcast-golang
+	addr, err := net.ResolveUDPAddr("udp4", dest.String()+":67")
 	if err != nil {
 		return fmt.Errorf("Failed resolving remote: %v", err)
 	}

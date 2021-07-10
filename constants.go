@@ -1,6 +1,14 @@
 package main
 
 //
+// DHCP Op types
+//
+const (
+	BOOT_REQUEST = 1
+	BOOT_REPLY   = 2
+)
+
+//
 // DHCP Message types
 //
 const (

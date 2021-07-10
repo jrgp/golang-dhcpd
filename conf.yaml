@@ -9,8 +9,20 @@ pools:
     routers: [ 172.17.0.1 ]
     dns: [ 1.1.1.1, 8.8.8.8 ]
 
+  # Example pool acting as a relay, using a separate
+  # net on eth2
+  - name: other network
+    network: 192.168.0.0
+    mask: 255.255.255.0
+    start: 192.168.0.200
+    end: 192.168.0.200
+    leasetime: 60
+    myip: 192.168.0.1
+    routers: [ 192.168.0.1 ]
+    dns: [ 1.1.1.1, 8.8.8.8 ]
+
 leasedir: .
-interfaces: [ eth1 ]
+interfaces: [ eth1, eth2 ]
 
 # The following makes more sense
 #leasedir: /var/lib/godhcpd
