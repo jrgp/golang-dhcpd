@@ -12,6 +12,9 @@ func TestDhcpDiscover(t *testing.T) {
 	pool.Start = net.ParseIP("10.0.0.10")
 	pool.End = net.ParseIP("10.0.0.20")
 	pool.Netmask = net.ParseIP("255.255.255.0")
+	pool.Router = []net.IP{net.ParseIP("10.0.0.1")}
+	pool.MyIp = IpToFixedV4(net.ParseIP("10.0.0.254"))
+	pool.Dns = []net.IP{net.ParseIP("1.1.1.1"), net.ParseIP("1.0.0.1")}
 
 	//
 	// DHCPREQUEST targeting an unknown lease. Should get a NAK back
@@ -28,7 +31,8 @@ func TestDhcpDiscover(t *testing.T) {
 	handler := NewRequestHandler(message, pool)
 	response := handler.Handle()
 
-	require.Equal(t, byte(DHCPNAK), response.Options.GetByte(OPTION_MESSAGE_TYPE))
+	require.Equal(t, BOOT_REPLY, response.Header.Op)
+	require.Equal(t, DHCPNAK, response.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	//
 	// DISCOVER. Should get back a lease.
@@ -39,13 +43,19 @@ func TestDhcpDiscover(t *testing.T) {
 
 	message, err = ParseDhcpMessage(b)
 	require.Nil(t, err)
-	require.Equal(t, byte(DHCPDISCOVER), message.Options.GetByte(OPTION_MESSAGE_TYPE))
+	require.Equal(t, DHCPDISCOVER, message.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	handler = NewRequestHandler(message, pool)
 	response = handler.Handle()
 
-	require.Equal(t, byte(DHCPOFFER), response.Options.GetByte(OPTION_MESSAGE_TYPE))
+	require.Equal(t, BOOT_REPLY, response.Header.Op)
+	require.Equal(t, DHCPOFFER, response.Options.GetByte(OPTION_MESSAGE_TYPE))
 	require.Equal(t, IpToFixedV4(net.ParseIP("10.0.0.10")), response.Header.YourAddr)
+
+	require.Equal(t, []FixedV4{IpToFixedV4(net.ParseIP("255.255.255.0"))}, response.Options.GetFixedV4s(OPTION_SUBNET))
+	require.Equal(t, []FixedV4{IpToFixedV4(net.ParseIP("10.0.0.1"))}, response.Options.GetFixedV4s(OPTION_ROUTER))
+	require.Equal(t, []FixedV4{IpToFixedV4(net.ParseIP("1.1.1.1")), IpToFixedV4(net.ParseIP("1.0.0.1"))}, response.Options.GetFixedV4s(OPTION_DNS_SERVER))
+	require.Equal(t, []FixedV4{IpToFixedV4(net.ParseIP("10.0.0.254"))}, response.Options.GetFixedV4s(OPTION_SERVER_ID))
 
 	// Pool should have a lease for this mac
 	lease, ok := pool.TouchLeaseByMac(message.Header.Mac)
@@ -61,12 +71,13 @@ func TestDhcpDiscover(t *testing.T) {
 
 	message, err = ParseDhcpMessage(b)
 	require.Nil(t, err)
-	require.Equal(t, byte(DHCPREQUEST), message.Options.GetByte(OPTION_MESSAGE_TYPE))
+	require.Equal(t, BOOT_REPLY, response.Header.Op)
+	require.Equal(t, DHCPREQUEST, message.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	handler = NewRequestHandler(message, pool)
 	response = handler.Handle()
 
-	require.Equal(t, byte(DHCPNAK), response.Options.GetByte(OPTION_MESSAGE_TYPE))
+	require.Equal(t, DHCPNAK, response.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	//
 	// A request should now get back an ACK
@@ -77,12 +88,13 @@ func TestDhcpDiscover(t *testing.T) {
 
 	message, err = ParseDhcpMessage(b)
 	require.Nil(t, err)
-	require.Equal(t, byte(DHCPREQUEST), message.Options.GetByte(OPTION_MESSAGE_TYPE))
+	require.Equal(t, DHCPREQUEST, message.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	handler = NewRequestHandler(message, pool)
 	response = handler.Handle()
 
-	require.Equal(t, byte(DHCPACK), response.Options.GetByte(OPTION_MESSAGE_TYPE))
+	require.Equal(t, BOOT_REPLY, response.Header.Op)
+	require.Equal(t, DHCPACK, response.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	//
 	// Do a DHCPRELEASE
@@ -93,7 +105,7 @@ func TestDhcpDiscover(t *testing.T) {
 
 	message, err = ParseDhcpMessage(b)
 	require.Nil(t, err)
-	require.Equal(t, byte(DHCPRELEASE), message.Options.GetByte(OPTION_MESSAGE_TYPE))
+	require.Equal(t, DHCPRELEASE, message.Options.GetByte(OPTION_MESSAGE_TYPE))
 
 	handler = NewRequestHandler(message, pool)
 	response = handler.Handle()

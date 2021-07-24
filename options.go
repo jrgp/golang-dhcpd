@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 )
 
 // Represent a single DHCP option
@@ -56,6 +57,9 @@ func (o *Options) Dump() {
 	}
 }
 
+//
+// Abstract away boilerplate for common getting operations
+//
 func (o *Options) Get(code byte) (Option, bool) {
 	option, ok := o.data[code]
 	return option, ok
@@ -70,6 +74,48 @@ func (o *Options) GetByte(code byte) byte {
 	return 0
 }
 
+// Primarily used in testing
+func (o *Options) GetFixedV4s(code byte) []FixedV4 {
+	if option, ok := o.data[code]; ok {
+		if len(option.Data)%4 == 0 {
+			ips := make([]FixedV4, len(option.Data)/4)
+			for i := 0; i < len(ips); i++ {
+				if ip, err := BytesToFixedV4(option.Data[i*4 : i*4+4]); err == nil {
+					ips[i] = ip
+				}
+			}
+			return ips
+		}
+	}
+	return nil
+}
+
+//
+// Abstract away boilerplate for common IP setting operations
+//
+func (o *Options) SetIPs(code byte, ips ...net.IP) {
+	if len(ips) == 0 {
+		return
+	}
+	data := make([]byte, 0, 4*len(ips))
+	for _, ip := range ips {
+		data = append(data, IpToFixedV4(ip).Bytes()...)
+	}
+	o.Set(code, data)
+}
+
+func (o *Options) SetFixedV4s(code byte, ips ...FixedV4) {
+	if len(ips) == 0 {
+		return
+	}
+	data := make([]byte, 0, 4*len(ips))
+	for _, ip := range ips {
+		data = append(data, ip.Bytes()...)
+	}
+	o.Set(code, data)
+}
+
+// Set a single option
 func (o *Options) Set(code byte, data []byte) {
 	option := Option{
 		Data: data,
@@ -87,6 +133,7 @@ func (o *Options) Set(code byte, data []byte) {
 	o.data[code] = option
 }
 
+// Encode all options, including sentinel, to buf
 func (o *Options) Encode(buf *bytes.Buffer) error {
 	// Need the sentinel value at the end
 	if len(o.order) > 0 && o.order[len(o.order)-1] != OPTION_SENTINEL {

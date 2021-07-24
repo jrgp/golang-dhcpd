@@ -118,31 +118,23 @@ func (r *RequestHandler) SendLeaseInfo(lease *Lease, op byte) *DHCPMessage {
 	options.Set(OPTION_MESSAGE_TYPE, []byte{op})
 
 	// Netmask option
-	options.Set(OPTION_SUBNET, IpToFixedV4(r.pool.Netmask).Bytes())
+	options.SetIPs(OPTION_SUBNET, r.pool.Netmask)
 
 	// Router (defgw)
 	if len(r.pool.Router) > 0 {
-		bytes := make([]byte, 0, 4*len(r.pool.Router))
-		for _, ip := range r.pool.Router {
-			bytes = append(bytes, IpToFixedV4(ip).Bytes()...)
-		}
-		options.Set(OPTION_ROUTER, bytes)
+		options.SetIPs(OPTION_ROUTER, r.pool.Router...)
 	}
 
 	// DNS servers
 	if len(r.pool.Dns) > 0 {
-		bytes := make([]byte, 0, 4*len(r.pool.Dns))
-		for _, ip := range r.pool.Dns {
-			bytes = append(bytes, IpToFixedV4(ip).Bytes()...)
-		}
-		options.Set(OPTION_DNS_SERVER, bytes)
+		options.SetIPs(OPTION_DNS_SERVER, r.pool.Dns...)
 	}
 
 	// Lease time
 	options.Set(OPTION_LEASE_TIME, long2bytes(uint32(r.pool.LeaseTime.Seconds())))
 
 	// DHCP server
-	options.Set(OPTION_SERVER_ID, r.pool.MyIp.Bytes())
+	options.SetFixedV4s(OPTION_SERVER_ID, r.pool.MyIp)
 
 	return &DHCPMessage{header, options}
 }

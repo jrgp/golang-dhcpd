@@ -4,22 +4,22 @@ package main
 // DHCP Op types
 //
 const (
-	BOOT_REQUEST = 1
-	BOOT_REPLY   = 2
+	BOOT_REQUEST byte = 1
+	BOOT_REPLY   byte = 2
 )
 
 //
 // DHCP Message types
 //
 const (
-	DHCPDISCOVER = 1 // Implemented
-	DHCPOFFER    = 2 // Implemented
-	DHCPREQUEST  = 3 // Implemented
-	DHCPDECLINE  = 4
-	DHCPACK      = 5 // Implemented
-	DHCPNAK      = 6 // Implemented
-	DHCPRELEASE  = 7 // Implemented
-	DHCPINFORM   = 8
+	DHCPDISCOVER byte = 1 // Implemented
+	DHCPOFFER    byte = 2 // Implemented
+	DHCPREQUEST  byte = 3 // Implemented
+	DHCPDECLINE  byte = 4
+	DHCPACK      byte = 5 // Implemented
+	DHCPNAK      byte = 6 // Implemented
+	DHCPRELEASE  byte = 7 // Implemented
+	DHCPINFORM   byte = 8
 )
 
 var opNames = map[byte]string{
