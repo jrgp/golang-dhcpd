@@ -57,3 +57,39 @@ func TestIpAllocation(t *testing.T) {
 	require.Equal(t, "host3", lease3.Hostname)
 	require.Equal(t, IpToFixedV4(net.ParseIP("172.0.0.10")), lease3.IP)
 }
+
+// Test IP allocation with reserved mac addresses
+func TestIpReservedAllocation(t *testing.T) {
+	pool := NewPool()
+	pool.Start = net.ParseIP("172.0.0.10")
+	pool.End = net.ParseIP("172.0.0.12")
+	pool.Netmask = net.ParseIP("255.255.255.0")
+	pool.LeaseTime = time.Duration(1) * time.Hour
+
+	mac1 := MacAddress{0, 0, 0, 0, 0, 1}
+	mac2 := MacAddress{0, 0, 0, 0, 0, 2}
+
+	// Bind mac2 to 172.0.0.10. Deliberately choose an IP in our range to
+	// verify that overlaps are ignored
+	err := pool.AddReservedHost(&ReservedHost{
+		Mac: mac2,
+		IP:  IpToFixedV4(net.ParseIP("172.0.0.10")),
+	})
+	require.Nil(t, err)
+
+	// Verify initial IP lease acquisition chooses the IP after the reserved
+	lease1, err := pool.GetNextLease(mac1, "host1")
+	require.Nil(t, err)
+	require.Equal(t, IpToFixedV4(net.ParseIP("172.0.0.11")), lease1.IP)
+	require.Equal(t, mac1, lease1.Mac)
+	require.Equal(t, "host1", lease1.Hostname)
+	require.False(t, lease1.Expired())
+
+	// Verify custom allocation works
+	lease2, err := pool.GetNextLease(mac2, "host2")
+	require.Nil(t, err)
+	require.Equal(t, IpToFixedV4(net.ParseIP("172.0.0.10")), lease2.IP)
+	require.Equal(t, mac2, lease2.Mac)
+	require.Equal(t, "host2", lease2.Hostname)
+	require.False(t, lease2.Expired())
+}

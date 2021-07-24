@@ -33,6 +33,11 @@ pools:
     routers: [ 172.17.0.1 ]
     dns: [ 1.1.1.1, 8.8.8.8 ]
 
+    # Optional static IPs by mac address
+    hosts:
+      - ip: 172.17.0.5
+        hw: 0:1c:42:b4:6e:1d
+
 interfaces: [ eth1 ]
 leasedir: /var/lib/godhcpd
 ```
@@ -80,10 +85,10 @@ root@ubuntu2:~#
 - Bare minimum wire protocol for DHCPDISCOVER, DHCPOFFER, DHCPREQUEST, DHCPNAK, DHCPACK, and DHCPRELEASE to work
 - Supports relayed requests
 - Supports multiple IP Pools, sourced from configuration
+- Supports hosts in config with hardcoded IPs, based on mac address
 
 ## TODO
 
 - Support acting as a relay
 - Support arbitrary options
-- Support hosts in config with hardcoded IPs, based on mac address
 - More Tests

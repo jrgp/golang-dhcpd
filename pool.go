@@ -24,6 +24,12 @@ func (l *Lease) Expired() bool {
 	return time.Now().After(l.Expiration)
 }
 
+type ReservedHost struct {
+	Mac      MacAddress
+	Hostname string
+	IP       FixedV4
+}
+
 type Pool struct {
 	Name        string
 	Network     net.IP
@@ -37,19 +43,32 @@ type Pool struct {
 	LeaseTime   time.Duration
 	Persistence Persistence
 
+	// Internal lease database
 	leasesByMac map[MacAddress]*Lease
 	leaseByIp   map[FixedV4]*Lease
-	m           sync.RWMutex
+
+	// Internal database of fixed mac addresses to IPs for hosts,
+	// sourced from configuration
+	reservedByMac map[MacAddress]*ReservedHost
+	reservedByIp  map[FixedV4]*ReservedHost
+
+	m sync.RWMutex
 }
 
 func NewPool() *Pool {
 	p := &Pool{}
 	p.clearLeases()
+	p.clearReservedHosts()
 	return p
 }
 
 // Hacky, terrible, naive impl. I want an ordered int set!
-func (p *Pool) getFreeIp() (FixedV4, error) {
+func (p *Pool) getFreeIp(mac MacAddress) (FixedV4, error) {
+
+	// If there is a reserved IP for this mac address, use that
+	if host, ok := p.reservedByMac[mac]; ok {
+		return host.IP, nil
+	}
 
 	// Try to find the next free IP within our range, while keeping
 	// track of the first expired lease we found, in case we have no
@@ -60,6 +79,10 @@ func (p *Pool) getFreeIp() (FixedV4, error) {
 	var foundExpired *Lease = nil
 
 	for ipLong := start; ipLong <= end; ipLong++ {
+		// Skip over any IPs in our range which are reserved
+		if _, ok := p.reservedByIp[ipLong]; ok {
+			continue
+		}
 		if lease, ok := p.leaseByIp[ipLong]; !ok {
 			return ipLong, nil
 		} else {
@@ -94,6 +117,27 @@ func (p *Pool) deleteLease(lease *Lease) {
 	delete(p.leaseByIp, lease.IP)
 }
 
+func (p *Pool) clearReservedHosts() {
+	p.reservedByMac = map[MacAddress]*ReservedHost{}
+	p.reservedByIp = map[FixedV4]*ReservedHost{}
+}
+
+func (p *Pool) insertReservedHost(host *ReservedHost) {
+	p.reservedByMac[host.Mac] = host
+	p.reservedByIp[host.IP] = host
+}
+
+func (p *Pool) AddReservedHost(host *ReservedHost) error {
+	if _, ok := p.reservedByIp[host.IP]; ok {
+		return errors.New("Reserved hosts with duplicate IPs")
+	}
+	if _, ok := p.reservedByMac[host.Mac]; ok {
+		return errors.New("Reserved hosts with duplicate mac addresses")
+	}
+	p.insertReservedHost(host)
+	return nil
+}
+
 func (p *Pool) TouchLeaseByMac(mac MacAddress) (*Lease, bool) {
 	p.m.Lock()
 	defer p.m.Unlock()
@@ -110,7 +154,7 @@ func (p *Pool) GetNextLease(mac MacAddress, hostname string) (*Lease, error) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	ip, err := p.getFreeIp()
+	ip, err := p.getFreeIp(mac)
 	if err != nil {
 		return nil, err
 	}

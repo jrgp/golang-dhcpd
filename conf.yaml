@@ -9,6 +9,11 @@ pools:
     routers: [ 172.17.0.1 ]
     dns: [ 1.1.1.1, 8.8.8.8 ]
 
+    # Optional static IPs by mac address
+    hosts:
+      - ip: 172.17.0.5
+        hw: 0:1c:42:b4:6e:1d
+
   # Example pool acting as a relay, using a separate
   # net on eth2
   - name: other network

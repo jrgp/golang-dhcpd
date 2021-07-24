@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// Pool conf object
 type PoolConf struct {
 	Name string `yaml:"name"`
 	MyIp string `yaml:"myip"`
@@ -24,6 +25,10 @@ type PoolConf struct {
 	Dns    []string `yaml:"dns"`
 
 	LeaseTime uint32 `yaml:"leasetime"`
+
+	// TODO: add arbitrary options aside from just router/dns
+
+	ReservedHosts []HostConf `yaml:"hosts"`
 }
 
 func (pc PoolConf) ToPool() (*Pool, error) {
@@ -53,15 +58,30 @@ func (pc PoolConf) ToPool() (*Pool, error) {
 		pool.Dns = append(pool.Dns, net.ParseIP(ip))
 	}
 
+	for _, host := range pc.ReservedHosts {
+		if err := pool.AddReservedHost(host.ToHost()); err != nil {
+			return nil, err
+		}
+	}
+
 	return pool, nil
 }
 
 type HostConf struct {
-	Ip        string `yaml:"ip"`
-	Mac       string `yaml:"hw"`
-	MacParsed MacAddress
+	IP       string `yaml:"ip"`
+	Mac      string `yaml:"hw"`
+	Hostname string `yaml:"hostname"`
+	// TODO: add custom options scoped to host
 }
 
+func (hc *HostConf) ToHost() *ReservedHost {
+	return &ReservedHost{
+		Mac: StrToMac(hc.Mac),
+		IP:  IpToFixedV4(net.ParseIP(hc.IP)),
+	}
+}
+
+// Root yaml conf
 type Conf struct {
 	Pools      []PoolConf `yaml:"pools"`
 	Leasedir   string     `yaml:"leasedir"`
