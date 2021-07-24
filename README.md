@@ -1,13 +1,13 @@
 ## What
 
-This is a tiny in-progress POC IPv4-only dhcp server written in Golang
+This is a tiny IPv4-only dhcp server written in Golang.
 
 ## Why
 
 Other popular dhcpd servers such as isc-dhcpd and dnsmasq are written in C and occasionally
 have CVEs.
 
-I wanted to make a small and safe Go solution, as well as to learn the DHCP protocol.
+I wanted to make a small and safe Go solution, as well as to learn the [DHCP wire protocol](https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol).
 
 ## Quickstart
 
@@ -90,5 +90,7 @@ root@ubuntu2:~#
 ## TODO
 
 - Support acting as a relay
-- Support arbitrary options
+- Support arbitrary options, including options scoped to specific hosts
+- PXE with usage examples
+- Example systemd unit, deb/rpm packages, etc
 - More Tests
