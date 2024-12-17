@@ -2,11 +2,12 @@ package main
 
 import (
 	"errors"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"net"
+	"os"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 // Pool conf object
@@ -91,7 +92,7 @@ type Conf struct {
 func ParseConf(path string) (*Conf, error) {
 	conf := &Conf{}
 	var err error
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
