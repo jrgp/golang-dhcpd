@@ -39,8 +39,15 @@ pools:
         hw: 0:1c:42:b4:6e:1d
 
 interfaces: [ eth1 ]
-leasedir: /var/lib/godhcpd
+leasedir: /var/lib/golang-dhcpd
 ```
+
+### Running in Docker
+
+    mkdir /etc/golang-dhcpd
+    cp conf.yml /etc/golang-dhcpd/conf.yaml
+    docker build -t golang-dhcpd:latest .
+    docker-compose -f docker-compose.yml up
 
 ### Example command output on VM acting as DHCP server
 

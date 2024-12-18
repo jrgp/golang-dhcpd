@@ -30,4 +30,4 @@ leasedir: .
 interfaces: [ eth1, eth2 ]
 
 # The following makes more sense
-#leasedir: /var/lib/godhcpd
+#leasedir: /var/lib/golang-dhcpd

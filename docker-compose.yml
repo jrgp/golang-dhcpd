@@ -1,0 +1,14 @@
+services:
+
+  golang-dhcpd:
+    image: golang-dhcpd:latest
+    #build: .
+    command: ['/app/mygodhcpd', '-conf', '/etc/golang-dhcpd/conf.yaml']
+    restart: always
+    volumes:
+      - /etc/golang-dhcpd:/etc/golang-dhcpd
+      #- /var/lib/golang-dhcpd:/var/lib/golang-dhcpd
+    network_mode: "host"
+    ports:
+      - '67:67/upd'
+    hostname: golang-dhcpd
