@@ -44,6 +44,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed listening: %v", err)
 	}
+	defer ln.Close()
 
 	// Boilerplate to get additional OOB data with each incoming packet, which
 	// includes the ID of the incoming interface

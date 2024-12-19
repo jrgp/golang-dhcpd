@@ -10,5 +10,5 @@ services:
       #- /var/lib/golang-dhcpd:/var/lib/golang-dhcpd
     network_mode: "host"
     ports:
-      - '67:67/upd'
+      - '67:67/udp'
     hostname: golang-dhcpd
