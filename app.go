@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"path/filepath"
+	"time"
 )
 
 type App struct {
@@ -133,6 +134,22 @@ func (a *App) findPoolbyGiaddr(giaddr FixedV4) (*Pool, error) {
 	}
 
 	return nil, errors.New("Not found")
+}
+
+func (a *App) DispatchMessageWithTimeout(timeout time.Duration, myBuf, myOob []byte, remote *net.UDPAddr, localSocket *net.UDPConn) {
+	done := make(chan struct{})
+
+	go func() {
+		a.DispatchMessage(myBuf, myOob, remote, localSocket)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Request completed normally
+	case <-time.After(timeout):
+		log.Printf("DHCP request timeout")
+	}
 }
 
 func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr, localSocket *net.UDPConn) {
