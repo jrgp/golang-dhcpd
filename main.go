@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"syscall"
+	"time"
 )
 
 func getConfPath() string {
@@ -60,6 +61,7 @@ func main() {
 	buf := make([]byte, 1024)
 	oob := make([]byte, 1024)
 
+	requestSem := make(chan struct{}, conf.MaxConcurrentRequests)
 	for {
 		len, ooblen, _, remote, err := ln.ReadMsgUDP(buf, oob)
 		if err != nil {
@@ -67,6 +69,15 @@ func main() {
 			continue
 		}
 
-		go app.DispatchMessage(buf[:len], oob[:ooblen], remote, ln)
+		select {
+		case requestSem <- struct{}{}:
+			go func() {
+				defer func() { <-requestSem }()
+				timeout := time.Duration(conf.RequestTimeoutSeconds) * time.Second
+				app.DispatchMessageWithTimeout(timeout, buf[:len], oob[:ooblen], remote, ln)
+			}()
+		default:
+			log.Printf("DHCP request dropped - server busy")
+		}
 	}
 }

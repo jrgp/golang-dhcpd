@@ -86,7 +86,9 @@ func (hc *HostConf) ToHost() *ReservedHost {
 type Conf struct {
 	Pools      []PoolConf `yaml:"pools"`
 	Leasedir   string     `yaml:"leasedir"`
-	Interfaces []string   `yaml:"interfaces`
+	Interfaces []string   `yaml:"interfaces"`
+	MaxConcurrentRequests int        `yaml:"max_concurrent_requests"`
+	RequestTimeoutSeconds int        `yaml:"request_timeout_seconds"`
 }
 
 func ParseConf(path string) (*Conf, error) {
@@ -99,5 +101,14 @@ func ParseConf(path string) (*Conf, error) {
 	if err = yaml.Unmarshal(content, &conf); err != nil {
 		return nil, err
 	}
+
+	// Set defaults if not specified
+	if conf.MaxConcurrentRequests == 0 {
+		conf.MaxConcurrentRequests = 50
+	}
+	if conf.RequestTimeoutSeconds == 0 {
+		conf.RequestTimeoutSeconds = 5
+	}
+
 	return conf, nil
 }
