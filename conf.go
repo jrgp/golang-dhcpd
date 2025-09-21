@@ -89,6 +89,8 @@ type Conf struct {
 	Interfaces []string   `yaml:"interfaces"`
 	MaxConcurrentRequests int        `yaml:"max_concurrent_requests"`
 	RequestTimeoutSeconds int        `yaml:"request_timeout_seconds"`
+	RunAsUser             string     `yaml:"run_as_user"`
+	RunAsGroup            string     `yaml:"run_as_group"`
 }
 
 func ParseConf(path string) (*Conf, error) {

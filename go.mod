@@ -1,6 +1,6 @@
 module mygodhcpd
 
-go 1.23.4
+go 1.25.1
 
 require (
 	github.com/stretchr/testify v1.7.0

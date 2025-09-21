@@ -40,14 +40,17 @@ pools:
 
 interfaces: [ eth1 ]
 leasedir: /var/lib/golang-dhcpd
+
+run_as_user: dhcp
+run_as_group: dhcp
 ```
 
 ### Running in Docker
 
     mkdir /etc/golang-dhcpd
     cp conf.yml /etc/golang-dhcpd/conf.yaml
-    docker build -t golang-dhcpd:latest .
-    docker-compose -f docker-compose.yml up
+    docker compose up --build -d
+    docker compose logs -f
 
 ### Example command output on VM acting as DHCP server
 
@@ -84,7 +87,8 @@ root@ubuntu2:~#
 
 ## Status
 
-- Verified to work with Alpine's `udhcpc` client, Ubuntu's `dhclient` client, and Windows 10.
+- Verified to work with Alpine's `udhcpc` client, Ubuntu's `dhclient` client,
+  Windows 10, LG WebOS, Android phones.
 - Relay requests verified to work with isc-dhcp-relay.
 
 ## Implemented

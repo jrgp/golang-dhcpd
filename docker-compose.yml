@@ -1,14 +1,38 @@
 services:
 
   golang-dhcpd:
-    image: golang-dhcpd:latest
-    #build: .
+    #image: golang-dhcpd:latest
+    build: .
     command: ['/app/mygodhcpd', '-conf', '/etc/golang-dhcpd/conf.yaml']
     restart: always
     volumes:
-      - /etc/golang-dhcpd:/etc/golang-dhcpd
+      - /etc/golang-dhcpd:/etc/golang-dhcpd:ro
       #- /var/lib/golang-dhcpd:/var/lib/golang-dhcpd
     network_mode: "host"
     ports:
       - '67:67/udp'
     hostname: golang-dhcpd
+
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - SETUID
+      - SETGID
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/lib/golang-dhcpd:noexec,nosuid,size=100m,uid=1001,gid=1001
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.5'
+        reservations:
+          memory: 16M
+          cpus: '0.1'

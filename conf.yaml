@@ -29,5 +29,8 @@ pools:
 leasedir: .
 interfaces: [ eth1, eth2 ]
 
+run_as_user: dhcp
+run_as_group: dhcp
+
 # The following makes more sense
 #leasedir: /var/lib/golang-dhcpd
