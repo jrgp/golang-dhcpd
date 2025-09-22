@@ -57,6 +57,11 @@ func forkUnprivilegedWithSocket(ln *net.UDPConn, confPath, username, groupname s
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.ExtraFiles = []*os.File{file}
+	cmd.Env = []string{
+		"PATH=",
+		"HOME=/app",
+		fmt.Sprintf("USER=%s", username),
+	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Credential: &syscall.Credential{
 			Uid: uint32(uid),
