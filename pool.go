@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -129,10 +130,10 @@ func (p *Pool) insertReservedHost(host *ReservedHost) {
 
 func (p *Pool) AddReservedHost(host *ReservedHost) error {
 	if _, ok := p.reservedByIp[host.IP]; ok {
-		return errors.New("Reserved hosts with duplicate IPs")
+		return fmt.Errorf("Reserved hosts with duplicate IP: %v", host.IP)
 	}
 	if _, ok := p.reservedByMac[host.Mac]; ok {
-		return errors.New("Reserved hosts with duplicate mac addresses")
+		return fmt.Errorf("Reserved hosts with duplicate MAC: %v", host.Mac)
 	}
 	p.insertReservedHost(host)
 	return nil
