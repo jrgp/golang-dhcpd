@@ -9,9 +9,7 @@ import (
 	"strings"
 )
 
-//
 // net.IPNet suitable for a map key
-//
 type HashableIpNet struct {
 	IP   FixedV4
 	Mask FixedV4
@@ -27,9 +25,7 @@ func IpNet2HashableIpNet(inet *net.IPNet) (HashableIpNet, error) {
 	return result, nil
 }
 
-//
 // Fixed-width big-endian integer to keep track of IPv4 IPs, as they appear over the wire
-//
 type FixedV4 uint32
 
 func (v4 FixedV4) String() string {
@@ -65,9 +61,7 @@ func BytesToFixedV4(b []byte) (FixedV4, error) {
 	return FixedV4(binary.BigEndian.Uint32(b[0:4])), nil
 }
 
-//
 // Fixed-width byte array for mac addresses, as they appear over the wire
-//
 type MacAddress [6]byte
 
 func (m MacAddress) String() string {

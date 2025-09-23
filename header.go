@@ -1,6 +1,4 @@
-//
 // Helpers for parsing the DHCP header payload
-//
 package main
 
 import (

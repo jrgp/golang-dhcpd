@@ -1,6 +1,4 @@
-//
 // Helpers for parsing the DHCP option payloads
-//
 package main
 
 import (
@@ -57,9 +55,7 @@ func (o *Options) Dump() {
 	}
 }
 
-//
 // Abstract away boilerplate for common getting operations
-//
 func (o *Options) Get(code byte) (Option, bool) {
 	option, ok := o.data[code]
 	return option, ok
@@ -90,9 +86,7 @@ func (o *Options) GetFixedV4s(code byte) []FixedV4 {
 	return nil
 }
 
-//
 // Abstract away boilerplate for common IP setting operations
-//
 func (o *Options) SetIPs(code byte, ips ...net.IP) {
 	if len(ips) == 0 {
 		return

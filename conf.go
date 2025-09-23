@@ -84,9 +84,9 @@ func (hc *HostConf) ToHost() *ReservedHost {
 
 // Root yaml conf
 type Conf struct {
-	Pools      []PoolConf `yaml:"pools"`
-	Leasedir   string     `yaml:"leasedir"`
-	Interfaces []string   `yaml:"interfaces"`
+	Pools                 []PoolConf `yaml:"pools"`
+	Leasedir              string     `yaml:"leasedir"`
+	Interfaces            []string   `yaml:"interfaces"`
 	MaxConcurrentRequests int        `yaml:"max_concurrent_requests"`
 	RequestTimeoutSeconds int        `yaml:"request_timeout_seconds"`
 }

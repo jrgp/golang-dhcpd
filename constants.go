@@ -1,16 +1,12 @@
 package main
 
-//
 // DHCP Op types
-//
 const (
 	BOOT_REQUEST byte = 1
 	BOOT_REPLY   byte = 2
 )
 
-//
 // DHCP Message types
-//
 const (
 	DHCPDISCOVER byte = 1 // Implemented
 	DHCPOFFER    byte = 2 // Implemented

@@ -1,7 +1,5 @@
-//
 // Helpers for parsing and encoding a unified DHCP message,
 // including the header and the options
-//
 package main
 
 import (
