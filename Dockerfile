@@ -1,4 +1,4 @@
-FROM golang:1.23.4-alpine3.21
+FROM golang:1.25-alpine3.22 AS builder
 
 WORKDIR /app
 
@@ -7,8 +7,22 @@ RUN go mod download && go mod verify
 
 COPY *.go ./
 
-RUN go build -v
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o mygodhcpd
+
+FROM alpine:3.22
+
+RUN addgroup -g 1001 -S dhcp && \
+    adduser -S -D -H -u 1001 -h /app -s /sbin/nologin -G dhcp -g dhcp dhcp
+
+WORKDIR /app
+
+COPY --from=builder /app/mygodhcpd .
+
+RUN chown dhcp:dhcp /app/mygodhcpd && \
+    chown dhcp:dhcp /app && \
+    mkdir -p /var/lib/golang-dhcpd && \
+    chown dhcp:dhcp /var/lib/golang-dhcpd
 
 EXPOSE 67/udp
 
-CMD ["/app/mygodhcpd", "-conf", "conf.yaml"]
+CMD ["./mygodhcpd", "-conf", "conf.yaml"]

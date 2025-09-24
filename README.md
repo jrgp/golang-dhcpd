@@ -46,8 +46,16 @@ leasedir: /var/lib/golang-dhcpd
 
     mkdir /etc/golang-dhcpd
     cp conf.yml /etc/golang-dhcpd/conf.yaml
-    docker build -t golang-dhcpd:latest .
-    docker-compose -f docker-compose.yml up
+    docker compose up --build -d
+    docker compose logs -f
+
+**Note:** The Docker setup uses ipvlan networking for security. Update your config to:
+- Set `interfaces: [ eth0 ]` (interface name inside container may not be the same as host interface)
+- Set `myip:` to match the container's IP address
+
+**Warning:** Using `network_mode: "host"` with unprivileged users may fail
+to bind to port 67 due to Docker limitations with capabilities in host networking mode,
+so one can either use `ipvlan` mode with dhcp user or `host` mode with root user.
 
 ### Example command output on VM acting as DHCP server
 
@@ -84,7 +92,8 @@ root@ubuntu2:~#
 
 ## Status
 
-- Verified to work with Alpine's `udhcpc` client, Ubuntu's `dhclient` client, and Windows 10.
+- Verified to work with Alpine's `udhcpc` client, Ubuntu's `dhclient` client,
+  Windows 10, LG WebOS, Android phones.
 - Relay requests verified to work with isc-dhcp-relay.
 
 ## Implemented
