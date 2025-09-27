@@ -43,6 +43,7 @@ type Pool struct {
 	Dns         []net.IP
 	LeaseTime   time.Duration
 	Persistence Persistence
+	Verbose     bool
 
 	// Internal lease database
 	leasesByMac map[MacAddress]*Lease

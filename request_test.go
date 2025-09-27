@@ -9,6 +9,7 @@ import (
 
 func TestDhcpDiscover(t *testing.T) {
 	pool := NewPool()
+	pool.Verbose = true
 	pool.Start = net.ParseIP("10.0.0.10")
 	pool.End = net.ParseIP("10.0.0.20")
 	pool.Netmask = net.ParseIP("255.255.255.0")

@@ -51,7 +51,7 @@ func (o *Options) GetAll() map[byte]Option {
 func (o *Options) Dump() {
 	for _, key := range o.order {
 		option := o.data[key]
-		log.Printf("%v = %v (%+v)", key, string(""), option.Data)
+		log.Printf("%v = %v (%+v)", key, optionNames[key], option.Data)
 	}
 }
 

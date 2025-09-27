@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sort"
+	"strings"
 )
 
 type RequestHandler struct {
@@ -44,6 +46,9 @@ func (r *RequestHandler) HandleDiscover() *DHCPMessage {
 
 	mac := r.header.Mac
 	log.Printf("DHCPDISCOVER from %v (%s)", mac.String(), hostname)
+
+	r.VerboseRequestLogging()
+
 	if lease, ok := r.pool.TouchLeaseByMac(mac); ok {
 		log.Printf("Have old lease for %v: %v", mac.String(), lease.IP.String())
 		return r.SendLeaseInfo(lease, DHCPOFFER)
@@ -61,6 +66,9 @@ func (r *RequestHandler) HandleDiscover() *DHCPMessage {
 func (r *RequestHandler) HandleRequest() *DHCPMessage {
 	mac := r.header.Mac
 	log.Printf("DHCPREQUEST from %v for %v", mac.String(), r.header.ClientAddr.String())
+
+	r.VerboseRequestLogging()
+
 	var lease *Lease
 	var ok bool
 	if lease, ok = r.pool.TouchLeaseByMac(mac); !ok {
@@ -110,7 +118,7 @@ func (r *RequestHandler) SendLeaseInfo(lease *Lease, op byte) *DHCPMessage {
 		Mac:        r.header.Mac,
 	}
 
-	log.Printf("Sending %s with %v to %v", opNames[op], lease.IP.String(), r.header.Mac.String())
+	log.Printf("Sending %s with %v to %v", messageNames[op], lease.IP.String(), r.header.Mac.String())
 
 	options := NewOptions()
 
@@ -148,7 +156,7 @@ func (r *RequestHandler) SendNAK() *DHCPMessage {
 		Mac:        r.header.Mac,
 	}
 
-	log.Printf("Sending %s to %v", opNames[DHCPNAK], r.header.Mac.String())
+	log.Printf("Sending %s to %v", messageNames[DHCPNAK], r.header.Mac.String())
 
 	options := NewOptions()
 	options.Set(OPTION_MESSAGE_TYPE, []byte{DHCPNAK})
@@ -173,7 +181,7 @@ func (r *RequestHandler) sendMessageBroadcast(message *DHCPMessage, localSocket 
 
 	err = r.sendBroadcast(buf.Bytes(), localSocket)
 	if err != nil {
-		log.Printf("Failed sending %s payload: %v", opNames[message.Options.GetByte(OPTION_MESSAGE_TYPE)], err)
+		log.Printf("Failed sending %s payload: %v", messageNames[message.Options.GetByte(OPTION_MESSAGE_TYPE)], err)
 	}
 }
 
@@ -215,7 +223,7 @@ func (r *RequestHandler) sendMessageUnicast(message *DHCPMessage, dest FixedV4, 
 
 	err = r.sendUnicast(buf.Bytes(), dest, localSocket)
 	if err != nil {
-		log.Printf("Failed sending %s unicast payload: %v", opNames[message.Options.GetByte(OPTION_MESSAGE_TYPE)], err)
+		log.Printf("Failed sending %s unicast payload: %v", messageNames[message.Options.GetByte(OPTION_MESSAGE_TYPE)], err)
 	}
 }
 
@@ -233,4 +241,20 @@ func (r *RequestHandler) sendUnicast(data []byte, dest FixedV4, localSocket *net
 		return fmt.Errorf("Failed writing: %v", err)
 	}
 	return nil
+}
+
+func (r *RequestHandler) VerboseRequestLogging() {
+	if r.pool.Verbose {
+		option, ok := r.options.Get(OPTION_PARAM_REQ)
+		if ok {
+			names := []string{}
+			for _, opt := range option.Data {
+				if name, ok := optionNames[opt]; ok {
+					names = append(names, name)
+				}
+			}
+			sort.Strings(names)
+			log.Printf("Requesting back %v", strings.Join(names, ", "))
+		}
+	}
 }

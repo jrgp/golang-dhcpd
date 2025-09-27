@@ -40,6 +40,8 @@ pools:
       - ip: 172.17.0.5
         hw: 0:1c:42:b4:6e:1d
 
+    verbose: false # Set to true for debug logging
+
 interfaces: [ eth1 ]
 leasedir: /var/lib/golang-dhcpd
 ```

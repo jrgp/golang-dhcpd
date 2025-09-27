@@ -12,8 +12,9 @@ import (
 
 // Pool conf object
 type PoolConf struct {
-	Name string `yaml:"name"`
-	MyIp string `yaml:"myip"`
+	Name    string `yaml:"name"`
+	Verbose bool   `yaml:"verbose"`
+	MyIp    string `yaml:"myip"`
 
 	Network string `yaml:"network"`
 	Subnet  string `yaml:"subnet"`
@@ -36,6 +37,7 @@ func (pc PoolConf) ToPool() (*Pool, error) {
 	pool := NewPool()
 
 	pool.Name = pc.Name
+	pool.Verbose = pc.Verbose
 
 	if strings.Contains(pool.Name, "/") {
 		return nil, errors.New("Pool names cannot contain slashes as they are used in file names")
