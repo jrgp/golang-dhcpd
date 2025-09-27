@@ -2,6 +2,8 @@
 
 This is a tiny IPv4-only dhcp server written in Golang.
 
+Currently, this only works on Linux, though it is possible to run unit tests on Mac.
+
 ## Why
 
 Other popular dhcpd servers such as isc-dhcpd and dnsmasq are written in C and occasionally

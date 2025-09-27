@@ -4,7 +4,6 @@ import (
 	"flag"
 	"log"
 	"net"
-	"syscall"
 	"time"
 )
 
@@ -47,14 +46,11 @@ func main() {
 	}
 	defer ln.Close()
 
-	// Boilerplate to get additional OOB data with each incoming packet, which
-	// includes the ID of the incoming interface
-	file, err := ln.File()
+	// Setup platform-specific socket options
+	err = setupSocketOptions(ln)
 	if err != nil {
-		log.Fatalf("Failed getting socket descriptor: %v", err)
+		log.Fatalf("Failed setting up socket options: %v", err)
 	}
-
-	syscall.SetsockoptInt(int(file.Fd()), syscall.IPPROTO_IP, syscall.IP_PKTINFO, 1)
 
 	ln.SetReadBuffer(1048576)
 

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"golang.org/x/net/ipv4"
-
 	"errors"
 	"log"
 	"net"
@@ -73,22 +71,6 @@ func (a *App) insertPool(p *Pool) error {
 	a.ipnet2pool[ipnet] = p
 
 	return nil
-}
-
-func (a *App) oObToInterface(oob []byte) (*net.Interface, error) {
-	cm := &ipv4.ControlMessage{}
-
-	if err := cm.Parse(oob); err != nil {
-		return nil, err
-	}
-
-	iface, err := net.InterfaceByIndex(cm.IfIndex)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return iface, nil
 }
 
 // For non-relayed requests: find a pool by comparing nets to local nic
@@ -162,7 +144,7 @@ func (a *App) DispatchMessage(myBuf, myOob []byte, remote *net.UDPAddr, localSoc
 	var err error
 
 	// Grab iface and verify we're configured to work on it
-	iface, err := a.oObToInterface(myOob)
+	iface, err := oObToInterface(myOob)
 	if err != nil {
 		log.Printf("Failed parsing interface out of OOB: %v", err)
 		return
